@@ -1,0 +1,11 @@
+version: '3'
+services:
+  dev:
+    image: keboola/processor-split-dev
+    build:
+      context: .
+      dockerfile: Dockerfile-dev
+    volumes:
+      - ./:/code:z
+      - ./data:/data:z
+      - ./go:/go:z

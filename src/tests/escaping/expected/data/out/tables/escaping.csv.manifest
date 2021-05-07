@@ -1,0 +1,6 @@
+{
+    "columns": [
+        "col1",
+        "new-line\n\u003c\u003c\u003c"
+    ]
+}

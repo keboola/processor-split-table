@@ -1,0 +1,6 @@
+{
+  "parameters": {
+    "mode": "rows",
+    "rowsPerSlice": 3
+  }
+}
