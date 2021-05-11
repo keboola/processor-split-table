@@ -14,7 +14,7 @@ import (
 )
 
 func Mkdir(path string) {
-	if err := os.Mkdir(path, 0640); err != nil && !os.IsExist(err) {
+	if err := os.Mkdir(path, 0755); err != nil && !os.IsExist(err) {
 		kbc.PanicApplicationError("Cannot create dir \"%s\": %s", path, err)
 	}
 }
@@ -27,7 +27,7 @@ func CopyRecursive(src string, target string) {
 }
 
 func OpenFile(path string, flag int) *os.File {
-	file, err := os.OpenFile(path, flag, 0666)
+	file, err := os.OpenFile(path, flag, 0644)
 	if err != nil {
 		kbc.PanicApplicationError("Cannot open file \"%s\": %s", path, err)
 	}
