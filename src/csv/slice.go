@@ -3,12 +3,12 @@ package csv
 import (
 	"fmt"
 	"github.com/dustin/go-humanize"
-	"keboola.processor-split-by-nrows/src/config"
-	manifestPkg "keboola.processor-split-by-nrows/src/csv/manifest"
-	"keboola.processor-split-by-nrows/src/csv/rowsReader"
-	"keboola.processor-split-by-nrows/src/csv/slicedWriter"
-	"keboola.processor-split-by-nrows/src/kbc"
-	"keboola.processor-split-by-nrows/src/utils"
+	"keboola.processor-split-table/src/config"
+	manifestPkg "keboola.processor-split-table/src/csv/manifest"
+	"keboola.processor-split-table/src/csv/rowsReader"
+	"keboola.processor-split-table/src/csv/slicedWriter"
+	"keboola.processor-split-table/src/kbc"
+	"keboola.processor-split-table/src/utils"
 	"log"
 )
 

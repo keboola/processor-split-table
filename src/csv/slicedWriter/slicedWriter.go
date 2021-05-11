@@ -3,9 +3,9 @@ package slicedWriter
 import (
 	"bufio"
 	"fmt"
-	"keboola.processor-split-by-nrows/src/config"
-	"keboola.processor-split-by-nrows/src/kbc"
-	"keboola.processor-split-by-nrows/src/utils"
+	"keboola.processor-split-table/src/config"
+	"keboola.processor-split-table/src/kbc"
+	"keboola.processor-split-table/src/utils"
 	"os"
 )
 

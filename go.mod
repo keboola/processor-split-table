@@ -1,4 +1,4 @@
-module keboola.processor-split-by-nrows
+module keboola.processor-split-table
 
 go 1.16
 

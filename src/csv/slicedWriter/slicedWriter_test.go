@@ -2,8 +2,8 @@ package slicedWriter
 
 import (
 	"github.com/stretchr/testify/assert"
-	"keboola.processor-split-by-nrows/src/config"
-	"keboola.processor-split-by-nrows/src/utils"
+	"keboola.processor-split-table/src/config"
+	"keboola.processor-split-table/src/utils"
 	"path/filepath"
 	"runtime"
 	"testing"

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"github.com/otiai10/copy"
 	"io/ioutil"
-	"keboola.processor-split-by-nrows/src/kbc"
+	"keboola.processor-split-table/src/kbc"
 	"os"
 	"os/exec"
 	"path/filepath"

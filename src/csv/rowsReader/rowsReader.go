@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/csv"
-	"keboola.processor-split-by-nrows/src/kbc"
-	"keboola.processor-split-by-nrows/src/utils"
+	"keboola.processor-split-table/src/kbc"
+	"keboola.processor-split-table/src/utils"
 	"os"
 	"path/filepath"
 )

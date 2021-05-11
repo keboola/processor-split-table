@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"io/fs"
 	"io/ioutil"
-	"keboola.processor-split-by-nrows/src/utils"
+	"keboola.processor-split-table/src/utils"
 	"os"
 	"os/exec"
 	"path/filepath"

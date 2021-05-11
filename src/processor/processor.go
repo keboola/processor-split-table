@@ -2,11 +2,11 @@ package processor
 
 import (
 	"github.com/dustin/go-humanize"
-	"keboola.processor-split-by-nrows/src/config"
-	"keboola.processor-split-by-nrows/src/csv"
-	"keboola.processor-split-by-nrows/src/finder"
-	"keboola.processor-split-by-nrows/src/kbc"
-	"keboola.processor-split-by-nrows/src/utils"
+	"keboola.processor-split-table/src/config"
+	"keboola.processor-split-table/src/csv"
+	"keboola.processor-split-table/src/finder"
+	"keboola.processor-split-table/src/kbc"
+	"keboola.processor-split-table/src/utils"
 	"log"
 )
 

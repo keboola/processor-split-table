@@ -2,7 +2,7 @@ package finder
 
 import (
 	"io/fs"
-	"keboola.processor-split-by-nrows/src/kbc"
+	"keboola.processor-split-table/src/kbc"
 	"os"
 	"path/filepath"
 	"regexp"

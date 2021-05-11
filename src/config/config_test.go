@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/stretchr/testify/assert"
-	"keboola.processor-split-by-nrows/src/utils"
+	"keboola.processor-split-table/src/utils"
 	"os"
 	"testing"
 )
