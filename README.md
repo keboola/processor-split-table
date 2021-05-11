@@ -1,6 +1,5 @@
 # Split Table Processor
-
-[![Build Status](https://travis-ci.com/keboola/my-component.svg?branch=master)](https://travis-ci.com/keboola/my-component)
+![Build Status](https://github.com/keboola/processor-split-table/actions/workflows/push.yml/badge.svg)
 
 - Takes all CSV files in `/data/in/tables` and converts them to [sliced tables](https://developers.keboola.com/extend/common-interface/folders/#sliced-tables).
 - The default slice size is `500MiB`, the number of rows per slice can also be configured.
