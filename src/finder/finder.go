@@ -5,7 +5,6 @@ import (
 	"keboola.processor-split-table/src/kbc"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
@@ -110,12 +109,5 @@ func isSingleCsvTable(entry os.DirEntry, relativePath string) bool {
 }
 
 func hasCsvSuffix(path string) bool {
-	matched, err := regexp.MatchString(`^.*\.csv$`, path)
-	if err != nil {
-		kbc.PanicApplicationError("Regexp error: %s", err)
-	} else if !matched {
-		return false
-	}
-
-	return true
+	return strings.HasSuffix(path, ".csv")
 }
