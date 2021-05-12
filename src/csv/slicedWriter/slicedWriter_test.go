@@ -32,16 +32,13 @@ func TestNewSlicedWriter(t *testing.T) {
 	w := NewSlicedWriter(conf, tempDir)
 
 	// Assert
-	assert.Equal(t, config.ModeBytes, w.mode)
-	assert.Equal(t, uint64(123), w.bytesPerSlice)
-	assert.Equal(t, uint64(0), w.rowsPerSlice)
 	assert.Equal(t, tempDir, w.dirPath)
-	assert.Equal(t, uint32(1), w.slice)               // <<<<<<
-	assert.Equal(t, tempDir+"/part0001", w.slicePath) // <<<<<<
-	assert.NotNil(t, w.sliceFile)
-	assert.NotNil(t, w.sliceWriter)
-	assert.Equal(t, uint64(0), w.sliceRows)
-	assert.Equal(t, uint64(0), w.sliceBytes)
+	assert.Equal(t, uint32(1), w.sliceNumber)          // <<<<<<
+	assert.Equal(t, tempDir+"/part0001", w.slice.path) // <<<<<<
+	assert.NotNil(t, w.slice.file)
+	assert.NotNil(t, w.slice.buffer)
+	assert.Equal(t, uint64(0), w.slice.rows)
+	assert.Equal(t, uint64(0), w.slice.rows)
 	assert.Equal(t, uint64(0), w.allRows)
 	assert.Equal(t, uint64(0), w.allBytes)
 }
@@ -63,16 +60,13 @@ func TestCreateNextSlice(t *testing.T) {
 	w.createNextSlice()
 
 	// Assert
-	assert.Equal(t, config.ModeBytes, w.mode)
-	assert.Equal(t, uint64(123), w.bytesPerSlice)
-	assert.Equal(t, uint64(0), w.rowsPerSlice)
 	assert.Equal(t, tempDir, w.dirPath)
-	assert.Equal(t, uint32(2), w.slice)               // <<<<<<
-	assert.Equal(t, tempDir+"/part0002", w.slicePath) // <<<<<<
-	assert.NotNil(t, w.sliceFile)
-	assert.NotNil(t, w.sliceWriter)
-	assert.Equal(t, uint64(0), w.sliceRows)
-	assert.Equal(t, uint64(0), w.sliceBytes)
+	assert.Equal(t, uint32(2), w.sliceNumber)          // <<<<<<
+	assert.Equal(t, tempDir+"/part0002", w.slice.path) // <<<<<<
+	assert.NotNil(t, w.slice.file)
+	assert.NotNil(t, w.slice.buffer)
+	assert.Equal(t, uint64(0), w.slice.rows)
+	assert.Equal(t, uint64(0), w.slice.rows)
 	assert.Equal(t, uint64(0), w.allRows)
 	assert.Equal(t, uint64(0), w.allBytes)
 }
@@ -93,14 +87,14 @@ func TestIsSpaceForNextRowBytes(t *testing.T) {
 	w := NewSlicedWriter(conf, tempDir)
 	w.allRows = 10
 	w.allBytes = 200
-	w.sliceRows = 5
-	w.sliceBytes = 100 // <<<<<< 23 bytes left
+	w.slice.rows = 5
+	w.slice.bytes = 100 // <<<<<< 23 bytes left
 
 	// Assert
-	assert.True(t, w.isSpaceForNextRow(22))
-	assert.True(t, w.isSpaceForNextRow(23))
-	assert.False(t, w.isSpaceForNextRow(24))
-	assert.False(t, w.isSpaceForNextRow(25))
+	assert.True(t, w.slice.IsSpaceForNextRow(22))
+	assert.True(t, w.slice.IsSpaceForNextRow(23))
+	assert.False(t, w.slice.IsSpaceForNextRow(24))
+	assert.False(t, w.slice.IsSpaceForNextRow(25))
 }
 
 func TestIsSpaceForNextRowRows(t *testing.T) {
@@ -119,15 +113,15 @@ func TestIsSpaceForNextRowRows(t *testing.T) {
 	w := NewSlicedWriter(conf, tempDir)
 	w.allRows = 10
 	w.allBytes = 200
-	w.sliceRows = 5 // <<<<<< 5 rows left
-	w.sliceBytes = 100
+	w.slice.rows = 5 // <<<<<< 5 rows left
+	w.slice.bytes = 100
 
 	// Assert
-	assert.True(t, w.isSpaceForNextRow(123))
-	assert.True(t, w.isSpaceForNextRow(123))
-	w.rowsPerSlice = 5 // <<<<<< no row left
-	assert.False(t, w.isSpaceForNextRow(123))
-	assert.False(t, w.isSpaceForNextRow(123))
+	assert.True(t, w.slice.IsSpaceForNextRow(123))
+	assert.True(t, w.slice.IsSpaceForNextRow(123))
+	w.slice.maxRows = 5 // <<<<<< no row left
+	assert.False(t, w.slice.IsSpaceForNextRow(123))
+	assert.False(t, w.slice.IsSpaceForNextRow(123))
 }
 
 func TestBytesMode(t *testing.T) {
@@ -147,21 +141,21 @@ func TestBytesMode(t *testing.T) {
 
 	// 1 slice
 	w.Write([]byte("\"1bc\",\"def\"\n")) // <<<<<< 12B
-	assert.Equal(t, uint32(1), w.slice)
+	assert.Equal(t, uint32(1), w.sliceNumber)
 	w.Write([]byte("\"2bc\",\"def\"\n"))
-	assert.Equal(t, uint32(1), w.slice) // <<<<<< 24B
+	assert.Equal(t, uint32(1), w.sliceNumber) // <<<<<< 24B
 	w.Write([]byte("\"3bc\",\"def\"\n"))
-	assert.Equal(t, uint32(1), w.slice) // <<<<<< 32B
+	assert.Equal(t, uint32(1), w.sliceNumber) // <<<<<< 32B
 	// 2 slice
 	w.Write([]byte("\"4bc\",\"def\"\n"))
-	assert.Equal(t, uint32(2), w.slice) // <<<<<< 44B -> new slice -> 12B
+	assert.Equal(t, uint32(2), w.sliceNumber) // <<<<<< 44B -> new slice -> 12B
 	w.Write([]byte("\"5bc\",\"def\"\n"))
-	assert.Equal(t, uint32(2), w.slice)
+	assert.Equal(t, uint32(2), w.sliceNumber)
 	w.Write([]byte("\"6bc\",\"def\"\n"))
-	assert.Equal(t, uint32(2), w.slice)
+	assert.Equal(t, uint32(2), w.sliceNumber)
 	// 3 slice
 	w.Write([]byte("\"7bc\",\"def\"\n"))
-	assert.Equal(t, uint32(3), w.slice)
+	assert.Equal(t, uint32(3), w.sliceNumber)
 }
 
 func TestRowsMode(t *testing.T) {
@@ -181,21 +175,21 @@ func TestRowsMode(t *testing.T) {
 
 	// 1 slice
 	w.Write([]byte("\"1bc\",\"def\"\n"))
-	assert.Equal(t, uint32(1), w.slice)
+	assert.Equal(t, uint32(1), w.sliceNumber)
 	w.Write([]byte("\"2bc\",\"def\"\n"))
-	assert.Equal(t, uint32(1), w.slice)
+	assert.Equal(t, uint32(1), w.sliceNumber)
 	w.Write([]byte("\"3bc\",\"def\"\n"))
-	assert.Equal(t, uint32(1), w.slice)
+	assert.Equal(t, uint32(1), w.sliceNumber)
 	// 2 slice
 	w.Write([]byte("\"4bc\",\"def\"\n"))
-	assert.Equal(t, uint32(2), w.slice)
+	assert.Equal(t, uint32(2), w.sliceNumber)
 	w.Write([]byte("\"5bc\",\"def\"\n"))
-	assert.Equal(t, uint32(2), w.slice)
+	assert.Equal(t, uint32(2), w.sliceNumber)
 	w.Write([]byte("\"6bc\",\"def\"\n"))
-	assert.Equal(t, uint32(2), w.slice)
+	assert.Equal(t, uint32(2), w.sliceNumber)
 	// 3 slice
 	w.Write([]byte("\"7bc\",\"def\"\n"))
-	assert.Equal(t, uint32(3), w.slice)
+	assert.Equal(t, uint32(3), w.sliceNumber)
 }
 
 func TestWriteCsv(t *testing.T) {
