@@ -6,6 +6,7 @@
 - The approximate speed in Keboola Connection is `200 MiB / s` (if `gzip` disabled).
 - Manifest is created if needed. Original manifest's keys are preserved.
 - Header from CSV table is moved to manifest's `columns` key if input table is not headless.
+- CSV table must use [default format](https://help.keboola.com/storage/tables/csv-files/).
 - Files and already sliced tables are copied without change.
 
 # Usage
