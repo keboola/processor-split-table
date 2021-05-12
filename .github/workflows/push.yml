@@ -6,10 +6,6 @@ env:
   KBC_DEVELOPERPORTAL_VENDOR: "keboola"
   KBC_DEVELOPERPORTAL_USERNAME: "keboola+processor_split_table"
   KBC_DEVELOPERPORTAL_PASSWORD: ${{ secrets.KBC_DEVELOPERPORTAL_PASSWORD }}
-  KBC_STORAGE_TOKEN: ${{ secrets.KBC_STORAGE_TOKEN }}
-  KBC_APP_TEST_PROJECT_URL: "https://connection.keboola.com/admin/projects/2703/extractors/keboola.ex-aws-s3/706458168"
-  KBC_APP_TEST_CONFIG_COMPONENT: "keboola.ex-aws-s3"
-  KBC_APP_TEST_CONFIG_ID: "706458168"
 jobs:
   Build:
     runs-on: ubuntu-latest
@@ -31,8 +27,6 @@ jobs:
           eval $(docker run --rm -e KBC_DEVELOPERPORTAL_USERNAME -e KBC_DEVELOPERPORTAL_PASSWORD -e KBC_DEVELOPERPORTAL_URL quay.io/keboola/developer-portal-cli-v2:latest ecr:get-login $KBC_DEVELOPERPORTAL_VENDOR $KBC_DEVELOPERPORTAL_APP)
           docker push $REPOSITORY:test
           docker pull quay.io/keboola/syrup-cli:latest
-      - name: Run test job in KBC
-        run: docker run --rm -e KBC_STORAGE_TOKEN quay.io/keboola/syrup-cli:latest run-job $KBC_APP_TEST_CONFIG_COMPONENT $KBC_APP_TEST_CONFIG_ID test
       - name: Deploy
         if: startsWith(github.ref, 'refs/tags/')
         run: ./deploy.sh
