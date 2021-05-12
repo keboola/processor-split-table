@@ -1,8 +1,9 @@
 # Split Table Processor
-![Build Status](https://github.com/keboola/processor-split-table/actions/workflows/push.yml/badge.svg)
+[![Build Status](https://github.com/keboola/processor-split-table/actions/workflows/push.yml/badge.svg)](https://github.com/keboola/processor-split-table/actions)
 
 - Takes all CSV files in `/data/in/tables` and converts them to [sliced tables](https://developers.keboola.com/extend/common-interface/folders/#sliced-tables).
 - The default slice size is `500MiB`, the number of rows per slice can also be configured.
+- The approximate speed in Keboola Connection is `200 MiB / s`.
 - Manifest is created if needed. Original manifest's keys are preserved.
 - Header from CSV table is moved to manifest's `columns` key if input table is not headless.
 - Files and already sliced tables are copied without change.
