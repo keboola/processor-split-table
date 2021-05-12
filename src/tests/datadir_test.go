@@ -112,7 +112,7 @@ func AssertExpectations(
 
 	// Assert STDOUT
 	if hasExpectedStdout {
-		if len(expectedStderr) == 0 {
+		if len(expectedStdout) == 0 {
 			assert.Equal(t, expectedStdout, stdout, "Unexpected STDOUT.")
 		} else {
 			assert.Regexp(
