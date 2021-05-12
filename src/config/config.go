@@ -24,8 +24,10 @@ type Config struct {
 
 type Parameters struct {
 	Mode          Mode   `json:"mode" validate:"required"`
-	BytesPerSlice uint64 `json:"bytesPerSlice" validate:"required"`
-	RowsPerSlice  uint64 `json:"rowsPerSlice" validate:"required"`
+	BytesPerSlice uint64 `json:"bytesPerSlice" validate:"min=1"`
+	RowsPerSlice  uint64 `json:"rowsPerSlice" validate:"min=1"`
+	Gzip          bool   `json:"gzip"`
+	GzipLevel     int    `json:"gzipLevel" validate:"min=1,max=9"`
 }
 
 func (m *Mode) UnmarshalText(b []byte) error {
@@ -53,7 +55,7 @@ func LoadConfig(configPath string) *Config {
 			kbc.PanicUserError("Cannot open config file: %s", err)
 		}
 	}
-	content := utils.ReadAllFromFile(f, configPath)
+	content := utils.ReadAll(f, configPath)
 	utils.CloseFile(f, configPath)
 
 	// Default values
@@ -62,6 +64,8 @@ func LoadConfig(configPath string) *Config {
 			Mode:          ModeBytes,
 			BytesPerSlice: 524_288_000, // 500 MiB
 			RowsPerSlice:  1_000_000,
+			Gzip:          false,
+			GzipLevel:     2, // 1 - BestSpeed, 9 - BestCompression
 		},
 	}
 
@@ -105,8 +109,9 @@ func processValidateError(err validator.ValidationErrors) string {
 	for _, e := range err {
 		path := strings.TrimPrefix(e.Namespace(), "Config.")
 		msg += fmt.Sprintf(
-			"Key \"%s\" failed on the \"%s\" validation. ",
+			"key=\"%s\", value=\"%v\" failed on the \"%s\" validation ",
 			path,
+			e.Value(),
 			e.ActualTag(),
 		)
 

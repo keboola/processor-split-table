@@ -2,11 +2,14 @@ package tests
 
 import (
 	"bytes"
+	"compress/gzip"
 	"fmt"
 	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"io/fs"
 	"io/ioutil"
+	"keboola.processor-split-table/src/kbc"
 	"keboola.processor-split-table/src/utils"
 	"os"
 	"os/exec"
@@ -75,6 +78,9 @@ func RunDataDirTest(t *testing.T, testDir string, binary string) {
 			exitCode = exitError.ExitCode()
 		}
 	}
+
+	// Un-gzip files for easier comparison
+	unGzipAllInDir(dataDir + "/out")
 
 	AssertExpectations(t, testDir, dataDir, exitCode, stdout.String(), stderr.String())
 }
@@ -217,4 +223,55 @@ func WildcardToRegexp(pattern string) string {
 		result.WriteString(regexp.QuoteMeta(literal))
 	}
 	return result.String()
+}
+
+func unGzipAllInDir(dir string) {
+	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, entryErr error) error {
+		// Stop on error
+		if entryErr != nil {
+			return entryErr
+		}
+
+		if !d.IsDir() && strings.HasSuffix(path, ".gz") {
+			unGzipFile(path)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		kbc.PanicApplicationError("Cannot iterate over directory \"%s\": %s \n", dir, err)
+	}
+}
+
+func unGzipFile(srcPath string) {
+	trgPath := srcPath + ".ungzipped"
+
+	// Open source and create gzip reader
+	src := utils.OpenFile(srcPath, os.O_RDONLY)
+	gzReader, err := gzip.NewReader(src)
+	if err != nil {
+		kbc.PanicApplicationError("Cannot create gzip reader.")
+	}
+
+	// Open target
+	trg := utils.OpenFile(trgPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
+
+	// Decompress source content
+	if _, err = io.Copy(trg, gzReader); err != nil {
+		kbc.PanicApplicationError("Cannot decompress file \"%s\": %s", srcPath, err)
+	}
+
+	// Close all
+	err = gzReader.Close()
+	if err != nil {
+		kbc.PanicApplicationError("Cannot close gzip reader.")
+	}
+	utils.CloseFile(src, srcPath)
+	utils.CloseFile(trg, trgPath)
+
+	// Remove original file
+	if err := os.Remove(srcPath); err != nil {
+		kbc.PanicApplicationError("Cannot remove file \"%s\": %s", srcPath, err)
+	}
 }

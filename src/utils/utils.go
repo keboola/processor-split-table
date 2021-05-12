@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/otiai10/copy"
+	"io"
 	"io/ioutil"
 	"keboola.processor-split-table/src/kbc"
 	"os"
@@ -39,10 +40,6 @@ func CloseFile(file *os.File, path string) {
 		return
 	}
 
-	if err := file.Sync(); err != nil {
-		kbc.PanicApplicationError("Cannot sync file \"%s\": %s", path, err)
-	}
-
 	if err := file.Close(); err != nil {
 		kbc.PanicApplicationError("Cannot close file \"%s\": %s", path, err)
 	}
@@ -57,6 +54,25 @@ func FileExists(path string) bool {
 	}
 
 	return false
+}
+
+func DirSize(path string) uint64 {
+	var size uint64
+	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			size += uint64(info.Size())
+		}
+		return nil
+	})
+
+	if err != nil {
+		kbc.PanicApplicationError("Cannot get dir \"%s\" size: %s", path, err)
+	}
+
+	return size
 }
 
 func WriteStringToFile(file *os.File, str string, path string) {
@@ -84,8 +100,8 @@ func JsonUnmarshal(data []byte, path string, v interface{}) {
 	}
 }
 
-func ReadAllFromFile(file *os.File, path string) []byte {
-	content, err := ioutil.ReadAll(file)
+func ReadAll(in io.Reader, path string) []byte {
+	content, err := ioutil.ReadAll(in)
 	if err != nil {
 		kbc.PanicApplicationError("Cannot read file \"%s\": %s", path, err)
 	}

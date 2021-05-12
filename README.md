@@ -3,7 +3,7 @@
 
 - Takes all CSV files in `/data/in/tables` and converts them to [sliced tables](https://developers.keboola.com/extend/common-interface/folders/#sliced-tables).
 - The default slice size is `500MiB`, the number of rows per slice can also be configured.
-- The approximate speed in Keboola Connection is `200 MiB / s`.
+- The approximate speed in Keboola Connection is `200 MiB / s` (if `gzip` disabled).
 - Manifest is created if needed. Original manifest's keys are preserved.
 - Header from CSV table is moved to manifest's `columns` key if input table is not headless.
 - Files and already sliced tables are copied without change.
@@ -13,8 +13,10 @@
 It supports optional parameters:
 
 - `mode` - enum `bytes` or `rows`, default `bytes`
-- `bytesPerSlice` - for `mode = bytes`, maximum size of the one slice in bytes, default `524 288 000` - `500 MiB`
-- `rowsPerSlice` - for `mode = rows`, maximum rows in the one slice, default `1 000 000`
+- `bytesPerSlice` (`int`) - for `mode = bytes`, maximum size of the one slice in bytes, default `524 288 000` - default `500 MiB`
+- `rowsPerSlice` (`int`) - for `mode = rows`, maximum rows in the one slice, default `1 000 000`
+- `gzip` (`bool`) - enable GZip compression, default `false`
+- `gzipLevel` (`int`) - compression level, min `1` - the best speed), max `9` - the best compression, default `2`
 
 ## Sample configurations
 

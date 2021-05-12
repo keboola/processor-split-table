@@ -3,6 +3,7 @@ package manifest
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/iancoleman/orderedmap"
 	"keboola.processor-split-table/src/kbc"
 	"keboola.processor-split-table/src/utils"
 	"os"
@@ -10,7 +11,7 @@ import (
 
 type Manifest struct {
 	path    string
-	content map[string]interface{} // decoded JSON content
+	content *orderedmap.OrderedMap // decoded JSON content
 }
 
 func LoadManifest(path string) *Manifest {
@@ -32,7 +33,7 @@ func (m *Manifest) WriteTo(path string) {
 }
 
 func (m *Manifest) HasColumns() bool {
-	if _, ok := m.content["columns"]; ok {
+	if _, ok := m.content.Get("columns"); ok {
 		return true
 	}
 
@@ -40,7 +41,7 @@ func (m *Manifest) HasColumns() bool {
 }
 
 func (m *Manifest) GetColumns() []string {
-	if val, ok := m.content["columns"]; ok {
+	if val, ok := m.content.Get("columns"); ok {
 		// Columns must be strings array
 		if slice, ok := val.([]string); ok {
 			return slice
@@ -52,13 +53,13 @@ func (m *Manifest) GetColumns() []string {
 }
 
 func (m *Manifest) SetColumns(columns []string) {
-	m.content["columns"] = columns
+	m.content.Set("columns", columns)
 }
 
-func loadManifestContent(path string) map[string]interface{} {
+func loadManifestContent(path string) *orderedmap.OrderedMap {
 	if !utils.FileExists(path) {
 		// Return empty map, file will be created
-		return make(map[string]interface{})
+		return orderedmap.New()
 	}
 
 	// Open file
@@ -66,18 +67,18 @@ func loadManifestContent(path string) map[string]interface{} {
 	defer utils.CloseFile(jsonFile, path)
 
 	// Parse JSON
-	var content map[string]interface{}
-	contentStr := utils.ReadAllFromFile(jsonFile, path)
+	content := orderedmap.New()
+	contentStr := utils.ReadAll(jsonFile, path)
 	utils.JsonUnmarshal(contentStr, path, &content)
 
 	// Convert columns []interface -> []string
-	if val, ok := content["columns"]; ok {
+	if val, ok := content.Get("columns"); ok {
 		if raw, ok := val.([]interface{}); ok {
 			strings := make([]string, len(raw))
 			for i := range raw {
 				strings[i] = fmt.Sprintf("%v", raw[i])
 			}
-			content["columns"] = strings
+			content.Set("columns", strings)
 		} else {
 			kbc.PanicApplicationError("Unexpected type \"%T\" of the manifest \"columns\" key.", val)
 		}
