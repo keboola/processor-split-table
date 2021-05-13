@@ -22,12 +22,12 @@ func SliceCsv(logger *log.Logger, conf *config.Config, relativePath string, inPa
 	writer := slicedWriter.NewSlicedWriter(conf, outPath)
 	defer writer.Close()
 
-	// Create reader
-	reader := rowsReader.NewCsvReader(inPath, ',', '"')
-
 	// Load manifest, may not exist
 	createManifest := !utils.FileExists(inManifestPath)
 	manifest := manifestPkg.LoadManifest(inManifestPath)
+
+	// Create reader
+	reader := rowsReader.NewCsvReader(inPath, manifest.GetDelimiter(), manifest.GetEnclosure())
 
 	// If manifest without defined columns -> store first row/header to manifest "columns" key
 	addColumnsToManifest := !manifest.HasColumns()

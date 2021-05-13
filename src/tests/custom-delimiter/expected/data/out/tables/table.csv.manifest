@@ -1,0 +1,7 @@
+{
+    "delimiter": "\t",
+    "columns": [
+        "id",
+        "val"
+    ]
+}

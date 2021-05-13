@@ -18,7 +18,7 @@ func LoadManifest(path string) *Manifest {
 	return &Manifest{path, loadManifestContent(path)}
 }
 
-// WriteTo output directory
+// WriteTo newState directory
 func (m *Manifest) WriteTo(path string) {
 	// Encode JSON
 	data, jsonErr := json.MarshalIndent(m.content, "", "    ")
@@ -54,6 +54,42 @@ func (m *Manifest) GetColumns() []string {
 
 func (m *Manifest) SetColumns(columns []string) {
 	m.content.Set("columns", columns)
+}
+
+func (m *Manifest) GetDelimiter() byte {
+	if val, ok := m.content.Get("delimiter"); ok {
+		// Delimiter must be strings
+		if val, ok := val.(string); ok {
+			// Delimiter must be 1 char
+			if len(val) != 1 {
+				kbc.PanicUserError("Unexpected length \"%d\" of the manifest \"delimiter\" key. Expected 1 char.", len(val))
+			}
+			return val[0]
+		} else {
+			kbc.PanicUserError("Unexpected type \"%T\" of the manifest \"delimiter\" key.", val)
+		}
+	}
+
+	// Default value
+	return ','
+}
+
+func (m *Manifest) GetEnclosure() byte {
+	if val, ok := m.content.Get("enclosure"); ok {
+		// Enclosure must be strings array
+		if val, ok := val.(string); ok {
+			// Enclosure must be 1 char
+			if len(val) != 1 {
+				kbc.PanicUserError("Unexpected length \"%d\" of the manifest \"enclosure\" key. Expected 1 char.", len(val))
+			}
+			return val[0]
+		} else {
+			kbc.PanicUserError("Unexpected type \"%T\" of the manifest \"enclosure\" key.", val)
+		}
+	}
+
+	// Default value
+	return '"'
 }
 
 func loadManifestContent(path string) *orderedmap.OrderedMap {
