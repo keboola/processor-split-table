@@ -18,7 +18,7 @@ func LoadManifest(path string) *Manifest {
 	return &Manifest{path, loadManifestContent(path)}
 }
 
-// WriteTo newState directory
+// WriteTo output directory
 func (m *Manifest) WriteTo(path string) {
 	// Encode JSON
 	data, jsonErr := json.MarshalIndent(m.content, "", "    ")
