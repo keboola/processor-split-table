@@ -23,7 +23,7 @@ func SliceCsv(logger *log.Logger, conf *config.Config, relativePath string, inPa
 	defer writer.Close()
 
 	// Create reader
-	reader := rowsReader.NewCsvReader(inPath)
+	reader := rowsReader.NewCsvReader(inPath, ',', '"')
 
 	// Load manifest, may not exist
 	createManifest := !utils.FileExists(inManifestPath)
