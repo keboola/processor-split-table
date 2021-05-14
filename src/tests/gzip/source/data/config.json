@@ -1,0 +1,7 @@
+{
+  "parameters": {
+    "mode": "bytes",
+    "bytesPerSlice": 20,
+    "gzip": true
+  }
+}

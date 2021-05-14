@@ -1,0 +1,4 @@
+Configured max 20 B per slice.
+Gzip enabled, compression level = 2.
+Slicing table "tables/tenRows.csv".
+Table "tables/tenRows.csv" sliced. Written 6 parts, 10 rows, total size 101 B. Gzipped size * B. Manifest created.

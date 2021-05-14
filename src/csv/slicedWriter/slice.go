@@ -2,6 +2,8 @@ package slicedWriter
 
 import (
 	"bufio"
+	gzip "github.com/klauspost/pgzip"
+	"io"
 	"keboola.processor-split-table/src/config"
 	"keboola.processor-split-table/src/kbc"
 	"keboola.processor-split-table/src/utils"
@@ -17,44 +19,71 @@ type slice struct {
 	maxRows  uint64
 	path     string
 	file     *os.File
-	buffer   *bufio.Writer
+	writer   io.Writer
 	rows     uint64
 	bytes    uint64
 }
 
 func NewSlice(c *config.Config, filePath string) *slice {
 	file := utils.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
-	bufWriter := bufio.NewWriterSize(file, OutBufferSize)
+
+	// Use gzip compression?
+	var err error
+	var writer io.Writer
+	if c.Parameters.Gzip {
+		writer, err = gzip.NewWriterLevel(file, c.Parameters.GzipLevel)
+		if err != nil {
+			kbc.PanicApplicationError("Cannot create gzip writer: %s", err)
+		}
+	} else {
+		writer = bufio.NewWriterSize(file, OutBufferSize)
+	}
+
 	return &slice{
 		c.Parameters.Mode,
 		c.Parameters.BytesPerSlice,
 		c.Parameters.RowsPerSlice,
 		filePath,
 		file,
-		bufWriter,
+		writer,
 		0,
 		0,
 	}
 }
 
 func (s *slice) Write(row []byte, rowLength uint64) {
-	_, err := s.buffer.Write(row)
+	n, err := s.writer.Write(row)
 	if err != nil {
 		kbc.PanicApplicationError("Cannot write row to slice \"%s\": %s", s.path, err)
+	}
+	if n != int(rowLength) {
+		kbc.PanicApplicationError("Unexpected length written to \"%s\". Expected %d, written %d.", s.path, rowLength, n)
 	}
 	s.rows++
 	s.bytes += rowLength
 }
 
 func (s *slice) Close() {
-	err := s.buffer.Flush()
-	if err != nil {
-		kbc.PanicApplicationError("Cannot flush buffer when closing slice \"%s\".", s.path)
+	// Close writer according to its type
+	switch w := s.writer.(type) {
+	case *bufio.Writer:
+		err := w.Flush()
+		if err != nil {
+			kbc.PanicApplicationError("Cannot flush writer when closing slice \"%s\": %s", s.path, err)
+		}
+	case io.WriteCloser:
+		err := w.Close()
+		if err != nil {
+			kbc.PanicApplicationError("Cannot close writer when closing slice \"%s\": %s", s.path, err)
+		}
+	default:
+		kbc.PanicApplicationError("Unexpected writer type \"%T\".", s.writer)
 	}
 
-	err = s.file.Close()
+	// Close file
+	err := s.file.Close()
 	if err != nil {
-		kbc.PanicApplicationError("Cannot close file when closing slice \"%s\".", s.path)
+		kbc.PanicApplicationError("Cannot close file when closing slice \"%s\": %s", s.path, err)
 	}
 }
 

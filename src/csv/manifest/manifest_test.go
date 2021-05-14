@@ -41,7 +41,7 @@ func TestGetSetColumns(t *testing.T) {
 
 		// Load stored content
 		f := utils.OpenFile(manifestPath, os.O_RDONLY)
-		content := utils.ReadAllFromFile(f, manifestPath)
+		content := utils.ReadAll(f, manifestPath)
 		utils.CloseFile(f, manifestPath)
 
 		// Parse JSON

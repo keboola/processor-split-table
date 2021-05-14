@@ -14,7 +14,7 @@ const (
 	StartTokenBufferSize      = 512 * 1024       // 512kB, initial size of buffer, it is auto-scaled
 	MaxTokenBufferSize        = 50 * 1024 * 1024 // 50MB, max size of buffer -> max size of one row
 	CsvLineBreak         byte = '\n'
-	CsvEnclosure         byte = '"' // used double-enclosure escaping in code
+	CsvEnclosure         byte = '"'
 )
 
 // CsvReader reads rows from the CSV table.
@@ -80,42 +80,23 @@ func (r *CsvReader) Err() error {
 	return r.scanner.Err()
 }
 
+// Search for \n -> rows delimiter. \n between enclosures is ignored.
 func splitRowsFunc(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	length := len(data)
 
 	// Iterate over each character
-	index := 0
 	insideEnclosure := false
-	for index < length {
-		switch data[index] {
+	for index, char := range data {
+		switch char {
 		case CsvLineBreak:
 			if !insideEnclosure {
 				// Line break outside enclosure -> row delimiter, return row
 				return index + 1, data[0 : index+1], nil
 			}
 		case CsvEnclosure:
-			// We need to check next char, if 2 enclosures in a row -> then it is escaped enclosure -> skip
-			nextIndex := index + 1
-			nextAvailable := nextIndex < length
-
-			// Request more data if needed (next char not loaded yet)
-			if !atEOF && !nextAvailable {
-				// Request more data, we don't have next char loaded, we cannot decide
-				return 0, nil, nil
-			}
-
-			// Check next char
-			if nextAvailable && data[nextIndex] == CsvEnclosure {
-				// Escaped enclosure, skip next char
-				index += 2
-				continue
-			}
-
 			// Enclosure found, invert state
 			insideEnclosure = !insideEnclosure
 		}
-
-		index++
 	}
 
 	// End of file

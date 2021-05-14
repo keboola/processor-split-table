@@ -38,6 +38,10 @@ func (w *SlicedWriter) Close() {
 	w.slice.Close()
 }
 
+func (w *SlicedWriter) GzipEnabled() bool {
+	return w.conf.Parameters.Gzip
+}
+
 func (w *SlicedWriter) Slices() uint32 {
 	return w.sliceNumber
 }
@@ -55,5 +59,13 @@ func (w *SlicedWriter) createNextSlice() {
 		w.slice.Close()
 	}
 	w.sliceNumber++
-	w.slice = NewSlice(w.conf, w.dirPath+"/part"+fmt.Sprintf("%04d", w.sliceNumber))
+	w.slice = NewSlice(w.conf, getSlicePath(w.dirPath, w.sliceNumber, w.conf.Parameters.Gzip))
+}
+
+func getSlicePath(dirPath string, sliceNumber uint32, gzip bool) string {
+	path := dirPath + "/part" + fmt.Sprintf("%04d", sliceNumber)
+	if gzip {
+		path = path + ".gz"
+	}
+	return path
 }

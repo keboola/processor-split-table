@@ -38,6 +38,10 @@ func (p *Processor) Run() {
 		kbc.PanicApplicationError("Unexpected mode \"%s\".")
 	}
 
+	if p.config.Parameters.Gzip {
+		p.logger.Printf("Gzip enabled, compression level = %d.", p.config.Parameters.GzipLevel)
+	}
+
 	// Process all found files
 	for _, file := range p.files {
 		inPath := p.inputDir + "/" + file.RelativePath

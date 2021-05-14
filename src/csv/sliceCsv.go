@@ -49,22 +49,28 @@ func SliceCsv(logger *log.Logger, conf *config.Config, relativePath string, inPa
 	manifest.WriteTo(outManifestPath)
 
 	// Log info
-	logResult(logger, writer, relativePath, createManifest, addColumnsToManifest)
+	logResult(logger, writer, relativePath, outPath, createManifest, addColumnsToManifest)
 
 }
 
-func logResult(logger *log.Logger, writer *slicedWriter.SlicedWriter, relativePath string, createManifest bool, addColumnsToManifest bool) {
+func logResult(logger *log.Logger, w *slicedWriter.SlicedWriter, relativePath string, absPath string, createManifest bool, addColumnsToManifest bool) {
 	msg := fmt.Sprintf(
 		"Table \"%s\" sliced. Written %d parts, %s rows, total size %s.",
 		relativePath,
-		writer.Slices(),
-		humanize.Comma(int64(writer.AllRows())),
-		humanize.IBytes(writer.AlLBytes()),
+		w.Slices(),
+		humanize.Comma(int64(w.AllRows())),
+		humanize.IBytes(w.AlLBytes()),
 	)
+
+	if w.GzipEnabled() {
+		msg += fmt.Sprintf(" Gzipped size %s.", humanize.IBytes(utils.DirSize(absPath)))
+	}
+
 	if createManifest {
 		msg += " Manifest created."
 	} else if addColumnsToManifest {
 		msg += " Columns added to manifest."
 	}
+
 	logger.Println(msg)
 }
