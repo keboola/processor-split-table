@@ -8,12 +8,15 @@ import (
 )
 
 type testData struct {
-	input   string
-	columns []string
-	output  map[string]interface{}
+	comment   string
+	input     string
+	columns   []string
+	enclosure byte
+	delimiter byte
+	newState  map[string]interface{}
 }
 
-func TestGetSetColumns(t *testing.T) {
+func TestGetSet(t *testing.T) {
 	for _, testData := range getTestData() {
 		// Create temp dir
 		tempDir := t.TempDir()
@@ -49,47 +52,84 @@ func TestGetSetColumns(t *testing.T) {
 		utils.JsonUnmarshal(content, manifestPath, &parsedContent)
 
 		// New columns are stored in the manifest file
-		assert.Equal(t, testData.output, parsedContent)
+		assert.Equal(t, testData.newState, parsedContent)
 	}
 }
 
 func getTestData() []testData {
 	return []testData{
 		{
-			input:   "",
-			columns: nil,
-			output: map[string]interface{}{
+			comment:   "file not exists",
+			input:     "",
+			columns:   nil,
+			enclosure: '"',
+			delimiter: ',',
+			newState: map[string]interface{}{
 				"columns": []interface{}{"1", "2", "3"},
 			},
 		},
 		{
-			input:   "{}",
-			columns: nil,
-			output: map[string]interface{}{
+			comment:   "empty json",
+			input:     "{}",
+			columns:   nil,
+			enclosure: '"',
+			delimiter: ',',
+			newState: map[string]interface{}{
 				"columns": []interface{}{"1", "2", "3"},
 			},
 		},
 		{
-			input:   "{\"columns\": []}",
-			columns: make([]string, 0),
-			output: map[string]interface{}{
+			comment:   "empty columns",
+			input:     "{\"columns\": []}",
+			columns:   make([]string, 0),
+			enclosure: '"',
+			delimiter: ',',
+			newState: map[string]interface{}{
 				"columns": []interface{}{"1", "2", "3"},
 			},
 		},
 		{
-			input:   "{\"columns\": [\"x\", \"y\", \"z\"]}",
-			columns: []string{"x", "y", "z"},
-			output: map[string]interface{}{
+			comment:   "columns defined, overwritten by setter",
+			input:     "{\"columns\": [\"x\", \"y\", \"z\"]}",
+			columns:   []string{"x", "y", "z"},
+			enclosure: '"',
+			delimiter: ',',
+			newState: map[string]interface{}{
 				"columns": []interface{}{"1", "2", "3"},
 			},
 		},
 		{
-			input:   "{\"foo\": \"bar\", \"columns\": [\"x\", \"y\", \"z\"]}",
-			columns: []string{"x", "y", "z"},
+			comment:   "columns defined, overwritten by setter + original value preserved",
+			input:     "{\"foo\": \"bar\", \"columns\": [\"x\", \"y\", \"z\"]}",
+			columns:   []string{"x", "y", "z"},
+			enclosure: '"',
+			delimiter: ',',
 			// foo:bar from the original manifest is preserved and new columns are set
-			output: map[string]interface{}{
+			newState: map[string]interface{}{
 				"foo":     "bar", // from original manifest
 				"columns": []interface{}{"1", "2", "3"},
+			},
+		},
+		{
+			comment:   "custom delimiter",
+			input:     "{\"delimiter\": \"\\t\"}",
+			columns:   nil,
+			enclosure: '"',
+			delimiter: '\t',
+			newState: map[string]interface{}{
+				"delimiter": "\t",
+				"columns":   []interface{}{"1", "2", "3"},
+			},
+		},
+		{
+			comment:   "custom enclosure",
+			input:     "{\"enclosure\": \"'\"}",
+			columns:   nil,
+			enclosure: '"',
+			delimiter: '\t',
+			newState: map[string]interface{}{
+				"enclosure": "'",
+				"columns":   []interface{}{"1", "2", "3"},
 			},
 		},
 	}

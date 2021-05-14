@@ -6,7 +6,7 @@
 - The approximate speed in Keboola Connection is `200 MiB / s` (if `gzip` disabled).
 - Manifest is created if needed. Original manifest's keys are preserved.
 - Header from CSV table is moved to manifest's `columns` key if input table is not headless.
-- CSV table must use [default format](https://help.keboola.com/storage/tables/csv-files/).
+- CSV delimiter and enclosure are loaded from manifest if set.
 - Files and already sliced tables are copied without change.
 
 # Usage
@@ -14,7 +14,7 @@
 It supports optional parameters:
 
 - `mode` - enum `bytes` or `rows`, default `bytes`
-- `bytesPerSlice` (`int`) - for `mode = bytes`, maximum size of the one slice in bytes, default `524 288 000` - default `500 MiB`
+- `bytesPerSlice` (`int`) - for `mode = bytes`, maximum size of the one slice in bytes, default `524 288 000` (`500 MiB`)
 - `rowsPerSlice` (`int`) - for `mode = rows`, maximum rows in the one slice, default `1 000 000`
 - `gzip` (`bool`) - enable GZip compression, default `false`
 - `gzipLevel` (`int`) - compression level, min `1` - the best speed), max `9` - the best compression, default `2`

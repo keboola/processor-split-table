@@ -2,8 +2,7 @@ package rowsReader
 
 import (
 	"bufio"
-	"bytes"
-	"encoding/csv"
+	"keboola.processor-split-table/src/csv/columnsParser"
 	"keboola.processor-split-table/src/kbc"
 	"keboola.processor-split-table/src/utils"
 	"os"
@@ -11,10 +10,8 @@ import (
 )
 
 const (
-	StartTokenBufferSize      = 512 * 1024       // 512kB, initial size of buffer, it is auto-scaled
-	MaxTokenBufferSize        = 50 * 1024 * 1024 // 50MB, max size of buffer -> max size of one row
-	CsvLineBreak         byte = '\n'
-	CsvEnclosure         byte = '"'
+	StartTokenBufferSize = 512 * 1024       // 512kB, initial size of buffer, it is auto-scaled
+	MaxTokenBufferSize   = 50 * 1024 * 1024 // 50MB, max size of buffer -> max size of one row
 )
 
 // CsvReader reads rows from the CSV table.
@@ -24,18 +21,20 @@ type CsvReader struct {
 	path      string
 	rowNumber uint64
 	scanner   *bufio.Scanner
+	delimiter byte
+	enclosure byte
 }
 
-func NewCsvReader(csvPath string) *CsvReader {
+func NewCsvReader(csvPath string, delimiter byte, enclosure byte) *CsvReader {
 	// Open CSV file
 	file := utils.OpenFile(csvPath, os.O_RDONLY)
 
 	// Create scanner with custom split function
 	buffer := make([]byte, StartTokenBufferSize)
 	scanner := bufio.NewScanner(file)
-	scanner.Split(splitRowsFunc)
+	scanner.Split(getSplitRowsFunc(enclosure))
 	scanner.Buffer(buffer, MaxTokenBufferSize)
-	return &CsvReader{path: csvPath, rowNumber: 0, scanner: scanner}
+	return &CsvReader{csvPath, 0, scanner, delimiter, enclosure}
 }
 
 func (r *CsvReader) Header() []string {
@@ -52,15 +51,20 @@ func (r *CsvReader) Header() []string {
 		kbc.PanicUserError("Missing header row in CSV \"%s\".", filepath.Base(r.path))
 	}
 
-	// We parse only whole rows in this processor,
-	// ... but we only need individual columns for the header -> used Go CSV reader for this task
-	recordsReader := csv.NewReader(bytes.NewReader(r.Bytes()))
-	records, err := recordsReader.Read()
-	if err != nil {
-		kbc.PanicApplicationError("Cannot read header row in CSV \"%s\": %s", r.path, err)
+	// Check if no error
+	if r.Err() != nil {
+		kbc.PanicApplicationError("Error when reading CSV header: %s", r.Err())
 	}
 
-	return records
+	// Parse columns
+	header := r.Bytes()
+	p := columnsParser.NewParser(r.delimiter, r.enclosure)
+	columns, err := p.Parse(header)
+	if err != nil {
+		kbc.PanicApplicationError("Cannot parse CSV header: %s.", err)
+	}
+
+	return columns
 }
 
 func (r *CsvReader) Read() bool {
@@ -80,35 +84,37 @@ func (r *CsvReader) Err() error {
 	return r.scanner.Err()
 }
 
-// Search for \n -> rows delimiter. \n between enclosures is ignored.
-func splitRowsFunc(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	length := len(data)
+func getSplitRowsFunc(enclosure byte) bufio.SplitFunc {
+	// Search for \n -> rows delimiter. \n between enclosures is ignored.
+	return func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		length := len(data)
 
-	// Iterate over each character
-	insideEnclosure := false
-	for index, char := range data {
-		switch char {
-		case CsvLineBreak:
-			if !insideEnclosure {
-				// Line break outside enclosure -> row delimiter, return row
-				return index + 1, data[0 : index+1], nil
+		// Iterate over characters
+		insideEnclosure := false
+		for index, char := range data {
+			switch char {
+			case '\n':
+				if !insideEnclosure {
+					// Line break outside enclosure -> row delimiter, return row
+					return index + 1, data[0 : index+1], nil
+				}
+			case enclosure:
+				// Enclosure found, invert state
+				insideEnclosure = !insideEnclosure
 			}
-		case CsvEnclosure:
-			// Enclosure found, invert state
-			insideEnclosure = !insideEnclosure
 		}
-	}
 
-	// End of file
-	if atEOF {
-		if length == 0 {
-			// All data consumed, no new token
-			return 0, nil, nil
+		// End of file
+		if atEOF {
+			if length == 0 {
+				// All data consumed, no new token
+				return 0, nil, nil
+			}
+			// The rest of the data is the last token/row
+			return length, data, nil
 		}
-		// The rest of the data is the last token/row
-		return length, data, nil
-	}
 
-	// Request more data
-	return 0, nil, nil
+		// Request more data
+		return 0, nil, nil
+	}
 }

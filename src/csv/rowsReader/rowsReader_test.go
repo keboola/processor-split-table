@@ -25,14 +25,23 @@ type testDataForRead struct {
 func TestReadHeader(t *testing.T) {
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
-	csvReader := NewCsvReader(rootDir + "/fixtures/two_rows.csv")
+	csvReader := NewCsvReader(rootDir+"/fixtures/two_rows.csv", ',', '"')
 	assert.Equal(t, []string{"abc", "def"}, csvReader.Header())
+}
+
+func TestReadHeaderCannotParse(t *testing.T) {
+	_, testFile, _, _ := runtime.Caller(0)
+	rootDir := filepath.Dir(testFile)
+	csvReader := NewCsvReader(rootDir+"/fixtures/bad_header.csv", ',', '"')
+	assert.PanicsWithError(t, "Cannot parse CSV header: unexpected token \"missing enclosure\n1\" before enclosure at position 28.", func() {
+		csvReader.Header()
+	})
 }
 
 func TestReadHeaderRowAlreadyRead(t *testing.T) {
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
-	csvReader := NewCsvReader(rootDir + "/fixtures/two_rows.csv")
+	csvReader := NewCsvReader(rootDir+"/fixtures/two_rows.csv", ',', '"')
 	csvReader.Read()
 	assert.PanicsWithError(
 		t,
@@ -46,7 +55,7 @@ func TestReadHeaderRowAlreadyRead(t *testing.T) {
 func TestReadHeaderEmptyFile(t *testing.T) {
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
-	csvReader := NewCsvReader(rootDir + "/fixtures/empty.csv")
+	csvReader := NewCsvReader(rootDir+"/fixtures/empty.csv", ',', '"')
 	assert.PanicsWithError(
 		t,
 		"Missing header row in CSV \"empty.csv\".",
@@ -61,7 +70,7 @@ func TestReadCsv(t *testing.T) {
 	rootDir := filepath.Dir(testFile)
 	for _, testData := range getReadCsvTestData() {
 		var rows []string
-		csvReader := NewCsvReader(rootDir + "/fixtures/" + testData.csvPath)
+		csvReader := NewCsvReader(rootDir+"/fixtures/"+testData.csvPath, ',', '"')
 		for csvReader.Read() {
 			rows = append(rows, string(csvReader.Bytes()))
 		}
@@ -72,13 +81,13 @@ func TestReadCsv(t *testing.T) {
 
 // Test for splitting function
 func TestSplitRowsFunc(t *testing.T) {
+	splitRowsFunc := getSplitRowsFunc('"')
 	for _, testData := range getSplitRowsFuncTestData() {
 		advance, token, err := splitRowsFunc(testData.data, testData.atEOF)
 		assert.Equal(t, testData.expectedAdvance, advance, testData.comment)
 		assert.Equal(t, testData.expectedToken, token, testData.comment)
 		assert.Equal(t, testData.expectedErr, err, testData.comment)
 	}
-
 }
 
 func getSplitRowsFuncTestData() []testDataForFunc {
