@@ -64,7 +64,7 @@ func LoadConfig(configPath string) *Config {
 			Mode:          ModeBytes,
 			BytesPerSlice: 524_288_000, // 500 MiB
 			RowsPerSlice:  1_000_000,
-			Gzip:          false,
+			Gzip:          true,
 			GzipLevel:     2, // 1 - BestSpeed, 9 - BestCompression
 		},
 	}

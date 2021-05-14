@@ -1,6 +1,7 @@
 {
   "parameters": {
     "mode": "rows",
-    "rowsPerSlice": 3
+    "rowsPerSlice": 3,
+    "gzip": false
   }
 }
