@@ -86,7 +86,7 @@ func GetTestParseHeaderData() []testData {
 		},
 		{
 			comment:         "Unfinished enclosure - 1",
-			input:           []byte("\"aaa"),
+			input:           []byte("\""),
 			expectedColumns: nil,
 			expectedErr:     fmt.Errorf("reached end of the row, but enclosure is not ended"),
 		},
