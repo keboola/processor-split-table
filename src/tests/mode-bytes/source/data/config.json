@@ -1,6 +1,7 @@
 {
   "parameters": {
     "mode": "bytes",
-    "bytesPerSlice": 20
+    "bytesPerSlice": 20,
+    "gzip": false
   }
 }
