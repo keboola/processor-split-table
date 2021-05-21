@@ -24,14 +24,14 @@ type slice struct {
 	bytes    uint64
 }
 
-func NewSlice(c *config.Config, filePath string) *slice {
+func NewSlice(mode config.Mode, maxBytes uint64, maxRows uint64, gzipEnabled bool, gzipLevel int, filePath string) *slice {
 	file := utils.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
 
 	// Use gzip compression?
 	var err error
 	var writer io.Writer
-	if c.Parameters.Gzip {
-		writer, err = gzip.NewWriterLevel(file, c.Parameters.GzipLevel)
+	if gzipEnabled {
+		writer, err = gzip.NewWriterLevel(file, gzipLevel)
 		if err != nil {
 			kbc.PanicApplicationError("Cannot create gzip writer: %s", err)
 		}
@@ -40,9 +40,9 @@ func NewSlice(c *config.Config, filePath string) *slice {
 	}
 
 	return &slice{
-		c.Parameters.Mode,
-		c.Parameters.BytesPerSlice,
-		c.Parameters.RowsPerSlice,
+		mode,
+		maxBytes,
+		maxRows,
 		filePath,
 		file,
 		writer,
@@ -88,6 +88,11 @@ func (s *slice) Close() {
 }
 
 func (s *slice) IsSpaceForNextRow(rowLength uint64) bool {
+	// In each slice must be at least 1 row
+	if s.rows == 0 {
+		return true
+	}
+
 	switch s.mode {
 	case config.ModeBytes:
 		return s.bytes+rowLength <= s.maxBytes

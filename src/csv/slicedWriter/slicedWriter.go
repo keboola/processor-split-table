@@ -3,29 +3,65 @@ package slicedWriter
 import (
 	"fmt"
 	"keboola.processor-split-table/src/config"
+	"math"
 )
 
 // SlicedWriter writes CSV to a sliced table defined by dirPath.
 // Each part is one file in dirPath.
 // When maxRows/maxBytes is reached -> a new file/part is created.
 type SlicedWriter struct {
-	conf        *config.Config
-	dirPath     string
-	sliceNumber uint32
-	slice       *slice
-	allRows     uint64
-	allBytes    uint64
+	mode          config.Mode
+	bytesPerSlice uint64
+	rowsPerSlice  uint64
+	maxSlices     uint32
+	gzipEnabled   bool
+	gzipLevel     int
+	dirPath       string
+	sliceNumber   uint32
+	slice         *slice
+	allRows       uint64
+	allBytes      uint64
 }
 
-func NewSlicedWriter(conf *config.Config, dirPath string) *SlicedWriter {
-	w := &SlicedWriter{conf: conf, dirPath: dirPath}
-	w.createNextSlice() // open first slice
+func NewSlicedWriterFromConf(conf *config.Config, inFileSize uint64, outPath string) *SlicedWriter {
+	mode := conf.Parameters.Mode
+	bytesPerSlice := conf.Parameters.BytesPerSlice
+	rowsPerSlice := conf.Parameters.RowsPerSlice
+	maxSlices := conf.Parameters.NumberOfSlices
+
+	// If fixes number of slices -> calculate bytesPerSlice
+	if mode == config.ModeSlices {
+		mode = config.ModeBytes
+		fileSize := float64(inFileSize)
+		bytesPerSlice = uint64(math.Ceil(fileSize / float64(maxSlices)))
+	} else {
+		maxSlices = 0 // disabled
+	}
+
+	return NewSlicedWriter(mode, bytesPerSlice, rowsPerSlice, maxSlices, conf.Parameters.Gzip, conf.Parameters.GzipLevel, outPath)
+}
+
+func NewSlicedWriter(mode config.Mode, bytesPerSlice uint64, rowsPerSlice uint64, maxSlices uint32, gzipEnabled bool, gzipLevel int, dirPath string) *SlicedWriter {
+	w := &SlicedWriter{
+		mode,
+		bytesPerSlice,
+		rowsPerSlice,
+		maxSlices,
+		gzipEnabled,
+		gzipLevel,
+		dirPath,
+		0,
+		nil,
+		0,
+		0,
+	}
+	w.createNextSlice() // open first slicey
 	return w
 }
 
 func (w *SlicedWriter) Write(row []byte) {
 	rowLength := uint64(len(row))
-	if !w.slice.IsSpaceForNextRow(rowLength) {
+	if !w.IsSpaceForNextRowInSlice(rowLength) {
 		w.createNextSlice()
 	}
 
@@ -38,8 +74,17 @@ func (w *SlicedWriter) Close() {
 	w.slice.Close()
 }
 
+func (w *SlicedWriter) IsSpaceForNextRowInSlice(rowLength uint64) bool {
+	// Last slice, do not overflow
+	if w.maxSlices > 0 && w.maxSlices == w.sliceNumber {
+		return true
+	}
+
+	return w.slice.IsSpaceForNextRow(rowLength)
+}
+
 func (w *SlicedWriter) GzipEnabled() bool {
-	return w.conf.Parameters.Gzip
+	return w.gzipEnabled
 }
 
 func (w *SlicedWriter) Slices() uint32 {
@@ -59,7 +104,8 @@ func (w *SlicedWriter) createNextSlice() {
 		w.slice.Close()
 	}
 	w.sliceNumber++
-	w.slice = NewSlice(w.conf, getSlicePath(w.dirPath, w.sliceNumber, w.conf.Parameters.Gzip))
+	slicePath := getSlicePath(w.dirPath, w.sliceNumber, w.gzipEnabled)
+	w.slice = NewSlice(w.mode, w.bytesPerSlice, w.rowsPerSlice, w.gzipEnabled, w.gzipLevel, slicePath)
 }
 
 func getSlicePath(dirPath string, sliceNumber uint32, gzip bool) string {

@@ -56,6 +56,15 @@ func FileExists(path string) bool {
 	return false
 }
 
+func FileSize(path string) uint64 {
+	fi, err := os.Stat(path)
+	if err != nil {
+		kbc.PanicApplicationError("Cannot get file size of \"%s\": %s", path, err)
+	}
+
+	return uint64(fi.Size())
+}
+
 func DirSize(path string) uint64 {
 	var size uint64
 	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {

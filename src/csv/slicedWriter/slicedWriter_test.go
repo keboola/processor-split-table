@@ -29,7 +29,7 @@ func TestNewSlicedWriter(t *testing.T) {
 	}
 
 	// Create writer
-	w := NewSlicedWriter(conf, tempDir)
+	w := NewSlicedWriterFromConf(conf, 1000, tempDir)
 
 	// Assert
 	assert.Equal(t, tempDir, w.dirPath)
@@ -56,7 +56,7 @@ func TestCreateNextSlice(t *testing.T) {
 	}
 
 	// Create writer
-	w := NewSlicedWriter(conf, tempDir)
+	w := NewSlicedWriterFromConf(conf, 1000, tempDir)
 	w.createNextSlice()
 
 	// Assert
@@ -84,7 +84,7 @@ func TestIsSpaceForNextRowBytes(t *testing.T) {
 	}
 
 	// Create writer
-	w := NewSlicedWriter(conf, tempDir)
+	w := NewSlicedWriterFromConf(conf, 1000, tempDir)
 	w.allRows = 10
 	w.allBytes = 200
 	w.slice.rows = 5
@@ -110,7 +110,7 @@ func TestIsSpaceForNextRowRows(t *testing.T) {
 	}
 
 	// Create writer
-	w := NewSlicedWriter(conf, tempDir)
+	w := NewSlicedWriterFromConf(conf, 1000, tempDir)
 	w.allRows = 10
 	w.allBytes = 200
 	w.slice.rows = 5 // <<<<<< 5 rows left
@@ -131,13 +131,15 @@ func TestBytesMode(t *testing.T) {
 	// Config
 	conf := &config.Config{
 		Parameters: config.Parameters{
-			Mode:          config.ModeBytes,
-			BytesPerSlice: 40,
+			Mode:           config.ModeBytes,
+			BytesPerSlice:  40,
+			NumberOfSlices: 2, // no effect
+			RowsPerSlice:   2, // no effect
 		},
 	}
 
 	// Create writer
-	w := NewSlicedWriter(conf, tempDir)
+	w := NewSlicedWriterFromConf(conf, 1000, tempDir)
 
 	// 1 slice
 	w.Write([]byte("\"1bc\",\"def\"\n")) // <<<<<< 12B
@@ -165,13 +167,15 @@ func TestRowsMode(t *testing.T) {
 	// Config
 	conf := &config.Config{
 		Parameters: config.Parameters{
-			Mode:         config.ModeRows,
-			RowsPerSlice: 3,
+			Mode:           config.ModeRows,
+			RowsPerSlice:   3,
+			BytesPerSlice:  5, // no effect
+			NumberOfSlices: 2, // no effect
 		},
 	}
 
 	// Create writer
-	w := NewSlicedWriter(conf, tempDir)
+	w := NewSlicedWriterFromConf(conf, 1000, tempDir)
 
 	// 1 slice
 	w.Write([]byte("\"1bc\",\"def\"\n"))
@@ -192,13 +196,51 @@ func TestRowsMode(t *testing.T) {
 	assert.Equal(t, uint32(3), w.sliceNumber)
 }
 
+func TestSlicesMode(t *testing.T) {
+	// Create temp dir
+	tempDir := t.TempDir()
+
+	// Config
+	conf := &config.Config{
+		Parameters: config.Parameters{
+			Mode:           config.ModeSlices,
+			NumberOfSlices: 3,
+			BytesPerSlice:  1, // no effect
+			RowsPerSlice:   1, // no effect
+		},
+	}
+
+	// Create writer
+	w := NewSlicedWriterFromConf(conf, 7*12, tempDir)
+	assert.Equal(t, uint32(3), w.maxSlices)
+	assert.Equal(t, uint64(28), w.bytesPerSlice) // 7 row * 12 bytes / 3 slices = 28 bytes per slice
+
+	// 1 slice
+	w.Write([]byte("\"1bc\",\"def\"\n")) // 12 bytes
+	assert.Equal(t, uint32(1), w.sliceNumber)
+	w.Write([]byte("\"2bc\",\"def\"\n"))
+	assert.Equal(t, uint32(1), w.sliceNumber)
+	// 2 slice
+	w.Write([]byte("\"3bc\",\"def\"\n"))
+	assert.Equal(t, uint32(2), w.sliceNumber)
+	w.Write([]byte("\"4bc\",\"def\"\n"))
+	assert.Equal(t, uint32(2), w.sliceNumber)
+	// 3 slice
+	w.Write([]byte("\"5bc\",\"def\"\n"))
+	assert.Equal(t, uint32(3), w.sliceNumber)
+	w.Write([]byte("\"6bc\",\"def\"\n"))
+	assert.Equal(t, uint32(3), w.sliceNumber)
+	w.Write([]byte("\"7bc\",\"def\"\n"))
+	assert.Equal(t, uint32(3), w.sliceNumber)
+}
+
 func TestWriteCsv(t *testing.T) {
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
 
 	for _, testData := range getReadCsvTestData() {
 		tempDir := t.TempDir()
-		w := NewSlicedWriter(testData.conf, tempDir)
+		w := NewSlicedWriterFromConf(testData.conf, 1000, tempDir)
 		for _, row := range testData.rows {
 			w.Write([]byte(row))
 		}
