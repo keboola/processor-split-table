@@ -8,6 +8,7 @@ import (
 	"keboola.processor-split-table/src/kbc"
 	"keboola.processor-split-table/src/utils"
 	"os"
+	"runtime"
 )
 
 const OutBufferSize = 20 * 1024 * 1024 // 20MB
@@ -85,6 +86,9 @@ func (s *slice) Close() {
 	if err != nil {
 		kbc.PanicApplicationError("Cannot close file when closing slice \"%s\": %s", s.path, err)
 	}
+
+	// Go runtime doesn't know maximum memory in Kubernetes/Docker, so we clean-up after each slice.
+	runtime.GC()
 }
 
 func (s *slice) IsSpaceForNextRow(rowLength uint64) bool {
