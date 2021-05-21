@@ -13,9 +13,10 @@
 
 It supports optional parameters:
 
-- `mode` - enum `bytes` or `rows`, default `bytes`
+- `mode` - enum (`bytes`, `rows`, `slices`), default `bytes`
 - `bytesPerSlice` (`int`) - for `mode = bytes`, maximum size of the one slice in bytes before compression, default `524 288 000` (`500 MiB`)
 - `rowsPerSlice` (`int`) - for `mode = rows`, maximum rows in the one slice, default `1 000 000`
+- `numberOfSlices` (`int`) - for `mode = slices`, fixed number of slices, default `60`
 - `gzip` (`bool`) - enable gzip compression, default `true`
 - `gzipLevel` (`int`) - compression level, min `1` - the best speed), max `9` - the best compression, default `2`
 
@@ -54,6 +55,19 @@ Rows mode:
   "parameters": {
     "mode": "rows",
     "rowsPerSlice": 5000000
+  }
+}
+```
+
+Slices mode:
+```json
+{
+  "definition": {
+    "component": "keboola.processor-split-table"
+  },
+  "parameters": {
+    "mode": "slices",
+    "numberOfSlices": 30
   }
 }
 ```

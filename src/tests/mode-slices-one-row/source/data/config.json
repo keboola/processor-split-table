@@ -1,0 +1,7 @@
+{
+  "parameters": {
+    "mode": "slices",
+    "numberOfSlices": 4,
+    "gzip": false
+  }
+}

@@ -14,6 +14,7 @@ import (
 const (
 	ModeBytes Mode = iota + 1
 	ModeRows
+	ModeSlices
 )
 
 type Mode uint
@@ -23,11 +24,12 @@ type Config struct {
 }
 
 type Parameters struct {
-	Mode          Mode   `json:"mode" validate:"required"`
-	BytesPerSlice uint64 `json:"bytesPerSlice" validate:"min=1"`
-	RowsPerSlice  uint64 `json:"rowsPerSlice" validate:"min=1"`
-	Gzip          bool   `json:"gzip"`
-	GzipLevel     int    `json:"gzipLevel" validate:"min=1,max=9"`
+	Mode           Mode   `json:"mode" validate:"required"`
+	BytesPerSlice  uint64 `json:"bytesPerSlice" validate:"min=1"`
+	RowsPerSlice   uint64 `json:"rowsPerSlice" validate:"min=1"`
+	NumberOfSlices uint32 `json:"numberOfSlices" validate:"min=1"`
+	Gzip           bool   `json:"gzip"`
+	GzipLevel      int    `json:"gzipLevel" validate:"min=1,max=9"`
 }
 
 func (m *Mode) UnmarshalText(b []byte) error {
@@ -38,8 +40,10 @@ func (m *Mode) UnmarshalText(b []byte) error {
 		*m = ModeBytes
 	case "rows":
 		*m = ModeRows
+	case "slices":
+		*m = ModeSlices
 	default:
-		return fmt.Errorf("unexpected value \"%s\" for \"mode\". Use \"rows\" or \"bytes\"", str)
+		return fmt.Errorf("unexpected value \"%s\" for \"mode\". Use \"rows\", \"bytes\" or \"slices\"", str)
 	}
 
 	return nil
@@ -61,11 +65,12 @@ func LoadConfig(configPath string) *Config {
 	// Default values
 	conf := &Config{
 		Parameters: Parameters{
-			Mode:          ModeBytes,
-			BytesPerSlice: 524_288_000, // 500 MiB
-			RowsPerSlice:  1_000_000,
-			Gzip:          true,
-			GzipLevel:     2, // 1 - BestSpeed, 9 - BestCompression
+			Mode:           ModeBytes,
+			BytesPerSlice:  524_288_000, // 500 MiB
+			RowsPerSlice:   1_000_000,
+			NumberOfSlices: 60,
+			Gzip:           true,
+			GzipLevel:      2, // 1 - BestSpeed, 9 - BestCompression
 		},
 	}
 

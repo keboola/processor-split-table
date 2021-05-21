@@ -19,7 +19,7 @@ func SliceCsv(logger *log.Logger, conf *config.Config, relativePath string, inPa
 	utils.Mkdir(outPath)
 
 	// Create writer
-	writer := slicedWriter.NewSlicedWriter(conf, outPath)
+	writer := slicedWriter.NewSlicedWriterFromConf(conf, utils.FileSize(inPath), outPath)
 	defer writer.Close()
 
 	// Load manifest, may not exist
