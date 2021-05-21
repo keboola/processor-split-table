@@ -88,7 +88,7 @@ func (s *slice) Close() {
 }
 
 func (s *slice) IsSpaceForNextRow(rowLength uint64) bool {
-	// In each slice must be at least 1 row
+	// In each slice must have at least 1 row
 	if s.rows == 0 {
 		return true
 	}
