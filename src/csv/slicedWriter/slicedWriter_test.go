@@ -203,10 +203,11 @@ func TestSlicesMode(t *testing.T) {
 	// Config
 	conf := &config.Config{
 		Parameters: config.Parameters{
-			Mode:           config.ModeSlices,
-			NumberOfSlices: 3,
-			BytesPerSlice:  1, // no effect
-			RowsPerSlice:   1, // no effect
+			Mode:             config.ModeSlices,
+			NumberOfSlices:   3,
+			MinBytesPerSlice: 1,
+			BytesPerSlice:    1, // no effect
+			RowsPerSlice:     1, // no effect
 		},
 	}
 

@@ -34,6 +34,11 @@ func NewSlicedWriterFromConf(conf *config.Config, inFileSize uint64, outPath str
 		mode = config.ModeBytes
 		fileSize := float64(inFileSize)
 		bytesPerSlice = uint64(math.Ceil(fileSize / float64(maxSlices)))
+
+		// Too small slices (a few kilobytes) can slowdown upload -> check min size
+		if bytesPerSlice < conf.Parameters.MinBytesPerSlice {
+			bytesPerSlice = conf.Parameters.MinBytesPerSlice
+		}
 	} else {
 		maxSlices = 0 // disabled
 	}

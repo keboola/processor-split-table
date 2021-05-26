@@ -2,6 +2,7 @@
   "parameters": {
     "mode": "slices",
     "numberOfSlices": 4,
+    "minBytesPerSlice": 1,
     "gzip": false
   }
 }

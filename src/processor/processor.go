@@ -35,7 +35,11 @@ func (p *Processor) Run() {
 	case config.ModeRows:
 		p.logger.Printf("Configured max %s rows per slice.", humanize.Comma(int64(p.config.Parameters.RowsPerSlice)))
 	case config.ModeSlices:
-		p.logger.Printf("Configured number of slices = %d.", p.config.Parameters.NumberOfSlices)
+		p.logger.Printf(
+			"Configured number of slices is %d, min %s per slice.",
+			p.config.Parameters.NumberOfSlices,
+			humanize.IBytes(p.config.Parameters.MinBytesPerSlice),
+		)
 	default:
 		kbc.PanicApplicationError("Unexpected mode \"%s\".", p.config.Parameters.Mode)
 	}
