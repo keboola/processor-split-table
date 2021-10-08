@@ -29,7 +29,7 @@ func NewSlicedWriterFromConf(conf *config.Config, inFileSize uint64, outPath str
 	rowsPerSlice := conf.Parameters.RowsPerSlice
 	maxSlices := conf.Parameters.NumberOfSlices
 
-	// If fixes number of slices -> calculate bytesPerSlice
+	// Fixed number of slices -> calculate bytesPerSlice
 	if mode == config.ModeSlices {
 		mode = config.ModeBytes
 		fileSize := float64(inFileSize)
