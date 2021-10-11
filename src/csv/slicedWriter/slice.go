@@ -11,18 +11,20 @@ import (
 	"runtime"
 )
 
-const OutBufferSize = 20 * 1024 * 1024 // 20MB
+const OutBufferSize = 20 * 1024 * 1024 // 20 MB
+const GcMaxBytes = 500 * 1024 * 1024   // run garbage collector each 500 MB written
 
 // slice writes to the one slice
 type slice struct {
-	mode     config.Mode
-	maxBytes uint64
-	maxRows  uint64
-	path     string
-	file     *os.File
-	writer   io.Writer
-	rows     uint64
-	bytes    uint64
+	mode        config.Mode
+	maxBytes    uint64
+	maxRows     uint64
+	path        string
+	file        *os.File
+	writer      io.Writer
+	rows        uint64
+	bytes       uint64
+	bytesFromGc uint64 // bytes from last garbage collector run
 }
 
 func NewSlice(mode config.Mode, maxBytes uint64, maxRows uint64, gzipEnabled bool, gzipLevel int, filePath string) *slice {
@@ -49,6 +51,7 @@ func NewSlice(mode config.Mode, maxBytes uint64, maxRows uint64, gzipEnabled boo
 		writer,
 		0,
 		0,
+		0,
 	}
 }
 
@@ -62,6 +65,13 @@ func (s *slice) Write(row []byte, rowLength uint64) {
 	}
 	s.rows++
 	s.bytes += rowLength
+	s.bytesFromGc += rowLength
+
+	// Run garbage collector each GcMaxBytes
+	if s.bytesFromGc > GcMaxBytes {
+		runtime.GC()
+		s.bytesFromGc = 0
+	}
 }
 
 func (s *slice) Close() {
