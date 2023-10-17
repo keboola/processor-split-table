@@ -3,14 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
-	"keboola.processor-split-table/src/config"
-	"keboola.processor-split-table/src/finder"
-	"keboola.processor-split-table/src/kbc"
-	"keboola.processor-split-table/src/processor"
 	"log"
 	"os"
 	"runtime/debug"
 	"runtime/pprof"
+
+	"github.com/keboola/processor-split-table/internal/pkg/config"
+	"github.com/keboola/processor-split-table/internal/pkg/finder"
+	"github.com/keboola/processor-split-table/internal/pkg/kbc"
+	"github.com/keboola/processor-split-table/internal/pkg/processor"
 )
 
 func main() {
@@ -21,7 +22,7 @@ func main() {
 	log.SetFlags(0)
 
 	// Cpu profiling can be enabled by flag
-	if startCpuProfileIfFlagSet() {
+	if startCPUProfileIfFlagSet() {
 		defer pprof.StopCPUProfile()
 	}
 
@@ -61,17 +62,17 @@ func handlePanic() {
 	}
 }
 
-func startCpuProfileIfFlagSet() bool {
+func startCPUProfileIfFlagSet() bool {
 	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to file")
 	flag.Parse()
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
-			kbc.PanicApplicationError("%s", err)
+			kbc.PanicApplicationErrorf("%s", err)
 		}
 		err = pprof.StartCPUProfile(f)
 		if err != nil {
-			kbc.PanicApplicationError("%s", err)
+			kbc.PanicApplicationErrorf("%s", err)
 		}
 		return true
 	}
