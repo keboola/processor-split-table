@@ -1,32 +1,104 @@
 name: GitHub Actions
 on: [push]
 env:
-  APP_IMAGE: keboola-processor-split
+  PROCESSOR_IMAGE: keboola-processor-split
   KBC_DEVELOPERPORTAL_APP: "keboola.processor-split-table"
   KBC_DEVELOPERPORTAL_VENDOR: "keboola"
   KBC_DEVELOPERPORTAL_USERNAME: "keboola+processor_split_table"
   KBC_DEVELOPERPORTAL_PASSWORD: ${{ secrets.KBC_DEVELOPERPORTAL_PASSWORD }}
 jobs:
-  Build:
+  build-dev-image:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v2
-      - name: Print Docker version
-        run: |
-          docker -v
-      - name: Run tests and build image
-        run: |
-          docker build -t keboola/processor-split-dev -f Dockerfile-dev .
-          docker build -t $APP_IMAGE .
+        uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to Docker
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push DEV image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile-dev
+          push: true
+          tags: keboolabot/keboola-processor-split-dev:latest
+          cache-from: type=registry,ref=keboolabot/keboola-processor-split-dev:buildcache
+          cache-to: type=registry,ref=keboolabot/keboola-processor-split-dev:buildcache,mode=max
+          provenance: false
+  lint:
+    needs:
+      - build-dev-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to Docker
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Pull DEV image
+        run: docker pull keboolabot/keboola-processor-split-dev:latest
+      - name: Lint
+        run: docker-compose run --rm -u "$UID:$GID" dev make lint
+  test:
+    needs:
+      - build-dev-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to Docker
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Pull DEV image
+        run: docker pull keboolabot/keboola-processor-split-dev:latest
+      - name: Test
+        run: docker-compose run --rm -u "$UID:$GID" dev make tests
+  build-processor-image:
+    needs:
+      - lint
+      - test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to Docker
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build Processor image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          load: true # add the image to the local registry
+          tags: ${{ env.PROCESSOR_IMAGE }}:latest
+          cache-from: type=registry,ref=keboolabot/keboola-processor-split-component:buildcache
+          cache-to: type=registry,ref=keboolabot/keboola-processor-split-component:buildcache,mode=max
+          provenance: false
       - name: Push image to ECR
         run: |
           docker pull quay.io/keboola/developer-portal-cli-v2:latest
           export REPOSITORY=`docker run --rm -e KBC_DEVELOPERPORTAL_USERNAME -e KBC_DEVELOPERPORTAL_PASSWORD -e KBC_DEVELOPERPORTAL_URL quay.io/keboola/developer-portal-cli-v2:latest ecr:get-repository $KBC_DEVELOPERPORTAL_VENDOR $KBC_DEVELOPERPORTAL_APP`
-          docker tag $APP_IMAGE:latest $REPOSITORY:test
+          docker tag $PROCESSOR_IMAGE:latest $REPOSITORY:test
           eval $(docker run --rm -e KBC_DEVELOPERPORTAL_USERNAME -e KBC_DEVELOPERPORTAL_PASSWORD -e KBC_DEVELOPERPORTAL_URL quay.io/keboola/developer-portal-cli-v2:latest ecr:get-login $KBC_DEVELOPERPORTAL_VENDOR $KBC_DEVELOPERPORTAL_APP)
           docker push $REPOSITORY:test
           docker pull quay.io/keboola/syrup-cli:latest
       - name: Deploy
         if: startsWith(github.ref, 'refs/tags/')
-        run: ./deploy.sh
+        run: ./scripts/deploy-processor.sh
