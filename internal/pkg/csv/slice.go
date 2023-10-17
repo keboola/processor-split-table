@@ -2,14 +2,16 @@ package csv
 
 import (
 	"fmt"
-	"github.com/dustin/go-humanize"
-	"keboola.processor-split-table/src/config"
-	manifestPkg "keboola.processor-split-table/src/csv/manifest"
-	"keboola.processor-split-table/src/csv/rowsReader"
-	"keboola.processor-split-table/src/csv/slicedWriter"
-	"keboola.processor-split-table/src/kbc"
-	"keboola.processor-split-table/src/utils"
 	"log"
+
+	humanize "github.com/dustin/go-humanize"
+
+	"github.com/keboola/processor-split-table/internal/pkg/config"
+	manifestPkg "github.com/keboola/processor-split-table/internal/pkg/csv/manifest"
+	"github.com/keboola/processor-split-table/internal/pkg/csv/rowsreader"
+	"github.com/keboola/processor-split-table/internal/pkg/csv/slicedwriter"
+	"github.com/keboola/processor-split-table/internal/pkg/kbc"
+	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
 func SliceCsv(logger *log.Logger, conf *config.Config, relativePath string, inPath string, inManifestPath string, outPath string, outManifestPath string) {
@@ -19,7 +21,7 @@ func SliceCsv(logger *log.Logger, conf *config.Config, relativePath string, inPa
 	utils.Mkdir(outPath)
 
 	// Create writer
-	writer := slicedWriter.NewSlicedWriterFromConf(conf, utils.FileSize(inPath), outPath)
+	writer := slicedwriter.NewSlicedWriterFromConf(conf, utils.FileSize(inPath), outPath)
 	defer writer.Close()
 
 	// Load manifest, may not exist
@@ -27,7 +29,7 @@ func SliceCsv(logger *log.Logger, conf *config.Config, relativePath string, inPa
 	manifest := manifestPkg.LoadManifest(inManifestPath)
 
 	// Create reader
-	reader := rowsReader.NewCsvReader(inPath, manifest.GetDelimiter(), manifest.GetEnclosure())
+	reader := rowsreader.NewCsvReader(inPath, manifest.GetDelimiter(), manifest.GetEnclosure())
 
 	// If manifest without defined columns -> store first row/header to manifest "columns" key
 	addColumnsToManifest := !manifest.HasColumns()
@@ -42,7 +44,7 @@ func SliceCsv(logger *log.Logger, conf *config.Config, relativePath string, inPa
 
 	// Check if no error
 	if reader.Err() != nil {
-		kbc.PanicApplicationError("Error when reading CSV \"%s\": %s", inPath, reader.Err())
+		kbc.PanicApplicationErrorf("Error when reading CSV \"%s\": %s", inPath, reader.Err())
 	}
 
 	// Write manifest
@@ -50,10 +52,9 @@ func SliceCsv(logger *log.Logger, conf *config.Config, relativePath string, inPa
 
 	// Log info
 	logResult(logger, writer, relativePath, outPath, createManifest, addColumnsToManifest)
-
 }
 
-func logResult(logger *log.Logger, w *slicedWriter.SlicedWriter, relativePath string, absPath string, createManifest bool, addColumnsToManifest bool) {
+func logResult(logger *log.Logger, w *slicedwriter.SlicedWriter, relativePath string, absPath string, createManifest bool, addColumnsToManifest bool) {
 	msg := fmt.Sprintf(
 		"Table \"%s\" sliced. Written %d parts, %s rows, total size %s.",
 		relativePath,

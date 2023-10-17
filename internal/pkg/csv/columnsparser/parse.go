@@ -1,4 +1,4 @@
-package columnsParser
+package columnsparser
 
 import (
 	"bytes"
@@ -20,7 +20,7 @@ func NewParser(delimiter byte, enclosure byte) *Parser {
 	return &Parser{delimiter: delimiter, enclosure: enclosure}
 }
 
-// Parse CSV columns from row
+// Parse CSV columns from row.
 func (p *Parser) Parse(row []byte) ([]string, error) {
 	p.row = bytes.TrimRight(row, "\n")
 	p.length = len(p.row)
@@ -50,7 +50,7 @@ func (p *Parser) Parse(row []byte) ([]string, error) {
 }
 
 func (p *Parser) processChar(char byte) error {
-	switch true {
+	switch {
 	case p.isDelimiter(char):
 		// Column found
 		p.flushColumn()
@@ -73,7 +73,6 @@ func (p *Parser) processChar(char byte) error {
 	default:
 		// Char is part of the column value
 		p.current = append(p.current, char)
-
 	}
 
 	p.index++

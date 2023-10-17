@@ -1,9 +1,10 @@
-package slicedWriter
+package slicedwriter
 
 import (
 	"fmt"
-	"keboola.processor-split-table/src/config"
 	"math"
+
+	"github.com/keboola/processor-split-table/internal/pkg/config"
 )
 
 // SlicedWriter writes CSV to a sliced table defined by dirPath.
@@ -116,7 +117,7 @@ func (w *SlicedWriter) createNextSlice() {
 func getSlicePath(dirPath string, sliceNumber uint32, gzip bool) string {
 	path := dirPath + "/part" + fmt.Sprintf("%04d", sliceNumber)
 	if gzip {
-		path = path + ".gz"
+		path += ".gz"
 	}
 	return path
 }

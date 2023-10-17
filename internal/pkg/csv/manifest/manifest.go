@@ -3,10 +3,12 @@ package manifest
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/iancoleman/orderedmap"
-	"keboola.processor-split-table/src/kbc"
-	"keboola.processor-split-table/src/utils"
 	"os"
+
+	"github.com/iancoleman/orderedmap"
+
+	"github.com/keboola/processor-split-table/internal/pkg/kbc"
+	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
 type Manifest struct {
@@ -18,12 +20,12 @@ func LoadManifest(path string) *Manifest {
 	return &Manifest{path, loadManifestContent(path)}
 }
 
-// WriteTo output directory
+// WriteTo output directory.
 func (m *Manifest) WriteTo(path string) {
 	// Encode JSON
 	data, jsonErr := json.MarshalIndent(m.content, "", "    ")
 	if jsonErr != nil {
-		kbc.PanicApplicationError("Cannot encode to JSON: %s", jsonErr)
+		kbc.PanicApplicationErrorf("Cannot encode to JSON: %s", jsonErr)
 	}
 
 	// Write to file
@@ -46,7 +48,7 @@ func (m *Manifest) GetColumns() []string {
 		if slice, ok := val.([]string); ok {
 			return slice
 		} else {
-			kbc.PanicApplicationError("Unexpected type \"%T\" of the manifest \"columns\" key.", val)
+			kbc.PanicApplicationErrorf("Unexpected type \"%T\" of the manifest \"columns\" key.", val)
 		}
 	}
 	return nil
@@ -59,14 +61,14 @@ func (m *Manifest) SetColumns(columns []string) {
 func (m *Manifest) GetDelimiter() byte {
 	if val, ok := m.content.Get("delimiter"); ok {
 		// Delimiter must be strings
-		if val, ok := val.(string); ok {
+		if str, ok := val.(string); ok {
 			// Delimiter must be 1 char
-			if len(val) != 1 {
-				kbc.PanicUserError("Unexpected length \"%d\" of the manifest \"delimiter\" key. Expected 1 char.", len(val))
+			if len(str) != 1 {
+				kbc.PanicUserErrorf("Unexpected length \"%d\" of the manifest \"delimiter\" key. Expected 1 char.", len(str))
 			}
-			return val[0]
+			return str[0]
 		} else {
-			kbc.PanicUserError("Unexpected type \"%T\" of the manifest \"delimiter\" key.", val)
+			kbc.PanicUserErrorf("Unexpected type \"%T\" of the manifest \"delimiter\" key.", val)
 		}
 	}
 
@@ -77,14 +79,14 @@ func (m *Manifest) GetDelimiter() byte {
 func (m *Manifest) GetEnclosure() byte {
 	if val, ok := m.content.Get("enclosure"); ok {
 		// Enclosure must be strings array
-		if val, ok := val.(string); ok {
+		if str, ok := val.(string); ok {
 			// Enclosure must be 1 char
-			if len(val) != 1 {
-				kbc.PanicUserError("Unexpected length \"%d\" of the manifest \"enclosure\" key. Expected 1 char.", len(val))
+			if len(str) != 1 {
+				kbc.PanicUserErrorf("Unexpected length \"%d\" of the manifest \"enclosure\" key. Expected 1 char.", len(str))
 			}
-			return val[0]
+			return str[0]
 		} else {
-			kbc.PanicUserError("Unexpected type \"%T\" of the manifest \"enclosure\" key.", val)
+			kbc.PanicUserErrorf("Unexpected type \"%T\" of the manifest \"enclosure\" key.", val)
 		}
 	}
 
@@ -105,7 +107,7 @@ func loadManifestContent(path string) *orderedmap.OrderedMap {
 	// Parse JSON
 	content := orderedmap.New()
 	contentStr := utils.ReadAll(jsonFile, path)
-	utils.JsonUnmarshal(contentStr, path, &content)
+	utils.JSONUnmarshal(contentStr, path, &content)
 
 	// Convert columns []interface -> []string
 	if val, ok := content.Get("columns"); ok {
@@ -116,7 +118,7 @@ func loadManifestContent(path string) *orderedmap.OrderedMap {
 			}
 			content.Set("columns", strings)
 		} else {
-			kbc.PanicApplicationError("Unexpected type \"%T\" of the manifest \"columns\" key.", val)
+			kbc.PanicApplicationErrorf("Unexpected type \"%T\" of the manifest \"columns\" key.", val)
 		}
 	}
 

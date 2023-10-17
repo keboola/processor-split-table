@@ -2,10 +2,11 @@ package finder
 
 import (
 	"io/fs"
-	"keboola.processor-split-table/src/kbc"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/keboola/processor-split-table/internal/pkg/kbc"
 )
 
 type FileType int
@@ -88,9 +89,8 @@ func FindFilesRecursive(rootDir string) []*FileNode {
 
 		return nil
 	})
-
 	if err != nil {
-		kbc.PanicApplicationError("Cannot iterate over directory \"%s\": %s \n", rootDir, err)
+		kbc.PanicApplicationErrorf("Cannot iterate over directory \"%s\": %s \n", rootDir, err)
 	}
 
 	return files

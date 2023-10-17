@@ -1,12 +1,13 @@
-package rowsReader
+package rowsreader
 
 import (
 	"bufio"
-	"keboola.processor-split-table/src/csv/columnsParser"
-	"keboola.processor-split-table/src/kbc"
-	"keboola.processor-split-table/src/utils"
 	"os"
 	"path/filepath"
+
+	"github.com/keboola/processor-split-table/internal/pkg/csv/columnsparser"
+	"github.com/keboola/processor-split-table/internal/pkg/kbc"
+	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
 const (
@@ -40,7 +41,7 @@ func NewCsvReader(csvPath string, delimiter byte, enclosure byte) *CsvReader {
 func (r *CsvReader) Header() []string {
 	// Header can only be read if no row has been read yet
 	if r.rowNumber != 0 {
-		kbc.PanicApplicationError(
+		kbc.PanicApplicationErrorf(
 			"The header cannot be read, other lines have already been read from CSV \"%s\".",
 			filepath.Base(r.path),
 		)
@@ -48,20 +49,20 @@ func (r *CsvReader) Header() []string {
 
 	// Header must be present for tables that don't have columns in manifest.json
 	if !r.Read() {
-		kbc.PanicUserError("Missing header row in CSV \"%s\".", filepath.Base(r.path))
+		kbc.PanicUserErrorf("Missing header row in CSV \"%s\".", filepath.Base(r.path))
 	}
 
 	// Check if no error
 	if r.Err() != nil {
-		kbc.PanicApplicationError("Error when reading CSV header: %s", r.Err())
+		kbc.PanicApplicationErrorf("Error when reading CSV header: %s", r.Err())
 	}
 
 	// Parse columns
 	header := r.Bytes()
-	p := columnsParser.NewParser(r.delimiter, r.enclosure)
+	p := columnsparser.NewParser(r.delimiter, r.enclosure)
 	columns, err := p.Parse(header)
 	if err != nil {
-		kbc.PanicApplicationError("Cannot parse CSV header: %s.", err)
+		kbc.PanicApplicationErrorf("Cannot parse CSV header: %s.", err)
 	}
 
 	return columns

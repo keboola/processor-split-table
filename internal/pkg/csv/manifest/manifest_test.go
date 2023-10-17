@@ -1,10 +1,12 @@
 package manifest
 
 import (
-	"github.com/stretchr/testify/assert"
-	"keboola.processor-split-table/src/utils"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
 type testData struct {
@@ -17,6 +19,8 @@ type testData struct {
 }
 
 func TestGetSet(t *testing.T) {
+	t.Parallel()
+
 	for _, testData := range getTestData() {
 		// Create temp dir
 		tempDir := t.TempDir()
@@ -49,7 +53,7 @@ func TestGetSet(t *testing.T) {
 
 		// Parse JSON
 		var parsedContent map[string]interface{}
-		utils.JsonUnmarshal(content, manifestPath, &parsedContent)
+		utils.JSONUnmarshal(content, manifestPath, &parsedContent)
 
 		// New columns are stored in the manifest file
 		assert.Equal(t, testData.newState, parsedContent)

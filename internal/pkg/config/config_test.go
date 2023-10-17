@@ -1,10 +1,12 @@
 package config
 
 import (
-	"github.com/stretchr/testify/assert"
-	"keboola.processor-split-table/src/utils"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
 type testData struct {
@@ -15,6 +17,8 @@ type testData struct {
 }
 
 func TestConfig(t *testing.T) {
+	t.Parallel()
+
 	// Create temp dir
 	tempDir := t.TempDir()
 
@@ -82,7 +86,8 @@ func getTestData() []testData {
 			input:   "{}",
 			error:   "",
 			expected: &Config{
-				Parameters: Parameters{Mode: ModeBytes,
+				Parameters: Parameters{
+					Mode:             ModeBytes,
 					BytesPerSlice:    524_288_000,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   60,
@@ -97,7 +102,8 @@ func getTestData() []testData {
 			input:   "{\"parameters\": {}}",
 			error:   "",
 			expected: &Config{
-				Parameters: Parameters{Mode: ModeBytes,
+				Parameters: Parameters{
+					Mode:             ModeBytes,
 					BytesPerSlice:    524_288_000,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   60,
@@ -112,7 +118,8 @@ func getTestData() []testData {
 			input:   "{\"parameters\": {\"gzip\": true, \"gzipLevel\": 5}}",
 			error:   "",
 			expected: &Config{
-				Parameters: Parameters{Mode: ModeBytes,
+				Parameters: Parameters{
+					Mode:             ModeBytes,
 					BytesPerSlice:    524_288_000,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   60,
@@ -127,7 +134,8 @@ func getTestData() []testData {
 			input:   "{\"parameters\": {\"gzip\": false}}",
 			error:   "",
 			expected: &Config{
-				Parameters: Parameters{Mode: ModeBytes,
+				Parameters: Parameters{
+					Mode:             ModeBytes,
 					BytesPerSlice:    524_288_000,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   60,
@@ -142,7 +150,8 @@ func getTestData() []testData {
 			input:   "{\"parameters\": {\"mode\": \"rows\", \"rowsPerSlice\": 123}}",
 			error:   "",
 			expected: &Config{
-				Parameters: Parameters{Mode: ModeRows,
+				Parameters: Parameters{
+					Mode:             ModeRows,
 					BytesPerSlice:    524_288_000,
 					RowsPerSlice:     123,
 					NumberOfSlices:   60,
@@ -157,7 +166,8 @@ func getTestData() []testData {
 			input:   "{\"parameters\": {\"mode\": \"bytes\", \"bytesPerSlice\": 123}}",
 			error:   "",
 			expected: &Config{
-				Parameters: Parameters{Mode: ModeBytes,
+				Parameters: Parameters{
+					Mode:             ModeBytes,
 					BytesPerSlice:    123,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   60,
@@ -172,7 +182,8 @@ func getTestData() []testData {
 			input:   "{\"parameters\": {\"mode\": \"slices\", \"numberOfSlices\": 123}}",
 			error:   "",
 			expected: &Config{
-				Parameters: Parameters{Mode: ModeSlices,
+				Parameters: Parameters{
+					Mode:             ModeSlices,
 					BytesPerSlice:    524_288_000,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   123,
@@ -187,7 +198,8 @@ func getTestData() []testData {
 			input:   "{\"parameters\": {\"mode\": \"slices\", \"minBytesPerSlice\": 123}}",
 			error:   "",
 			expected: &Config{
-				Parameters: Parameters{Mode: ModeSlices,
+				Parameters: Parameters{
+					Mode:             ModeSlices,
 					BytesPerSlice:    524_288_000,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   60,

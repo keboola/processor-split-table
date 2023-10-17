@@ -1,10 +1,11 @@
-package rowsReader
+package rowsreader
 
 import (
-	"github.com/stretchr/testify/assert"
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type testDataForFunc struct {
@@ -23,6 +24,8 @@ type testDataForRead struct {
 }
 
 func TestReadHeader(t *testing.T) {
+	t.Parallel()
+
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
 	csvReader := NewCsvReader(rootDir+"/fixtures/two_rows.csv", ',', '"')
@@ -30,6 +33,8 @@ func TestReadHeader(t *testing.T) {
 }
 
 func TestReadHeaderCannotParse(t *testing.T) {
+	t.Parallel()
+
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
 	csvReader := NewCsvReader(rootDir+"/fixtures/bad_header.csv", ',', '"')
@@ -39,6 +44,8 @@ func TestReadHeaderCannotParse(t *testing.T) {
 }
 
 func TestReadHeaderRowAlreadyRead(t *testing.T) {
+	t.Parallel()
+
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
 	csvReader := NewCsvReader(rootDir+"/fixtures/two_rows.csv", ',', '"')
@@ -53,6 +60,8 @@ func TestReadHeaderRowAlreadyRead(t *testing.T) {
 }
 
 func TestReadHeaderEmptyFile(t *testing.T) {
+	t.Parallel()
+
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
 	csvReader := NewCsvReader(rootDir+"/fixtures/empty.csv", ',', '"')
@@ -66,6 +75,8 @@ func TestReadHeaderEmptyFile(t *testing.T) {
 }
 
 func TestReadCsv(t *testing.T) {
+	t.Parallel()
+
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
 	for _, testData := range getReadCsvTestData() {
@@ -79,8 +90,10 @@ func TestReadCsv(t *testing.T) {
 	}
 }
 
-// Test for splitting function
+// Test for splitting function.
 func TestSplitRowsFunc(t *testing.T) {
+	t.Parallel()
+
 	splitRowsFunc := getSplitRowsFunc('"')
 	for _, testData := range getSplitRowsFuncTestData() {
 		advance, token, err := splitRowsFunc(testData.data, testData.atEOF)

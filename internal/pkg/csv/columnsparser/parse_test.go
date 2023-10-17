@@ -1,9 +1,10 @@
-package columnsParser
+package columnsparser
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type testData struct {
@@ -14,6 +15,8 @@ type testData struct {
 }
 
 func TestParse(t *testing.T) {
+	t.Parallel()
+
 	for _, data := range GetTestParseHeaderData() {
 		parser := NewParser(',', '"')
 		columns, err := parser.Parse(data.input)

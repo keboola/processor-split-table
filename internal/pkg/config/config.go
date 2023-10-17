@@ -2,13 +2,16 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/go-playground/validator/v10"
-	"keboola.processor-split-table/src/kbc"
-	"keboola.processor-split-table/src/utils"
 	"os"
 	"reflect"
 	"strings"
+
+	"github.com/go-playground/validator/v10"
+
+	"github.com/keboola/processor-split-table/internal/pkg/kbc"
+	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
 const (
@@ -52,12 +55,12 @@ func (m *Mode) UnmarshalText(b []byte) error {
 
 func LoadConfig(configPath string) *Config {
 	// Load file
-	f, err := os.OpenFile(configPath, os.O_RDONLY, 0640)
+	f, err := os.OpenFile(configPath, os.O_RDONLY, 0o640)
 	if err != nil {
 		if os.IsNotExist(err) {
-			kbc.PanicUserError("Config file not found.")
+			kbc.PanicUserErrorf("Config file not found.")
 		} else {
-			kbc.PanicUserError("Cannot open config file: %s", err)
+			kbc.PanicUserErrorf("Cannot open config file: %s", err)
 		}
 	}
 	content := utils.ReadAll(f, configPath)
@@ -79,7 +82,7 @@ func LoadConfig(configPath string) *Config {
 	// Parse JSON
 	err = json.Unmarshal(content, conf)
 	if err != nil {
-		kbc.PanicUserError("Invalid configuration: %s.", processJsonError(err))
+		kbc.PanicUserErrorf("Invalid configuration: %s.", processJSONError(err))
 	}
 
 	// Validate
@@ -97,15 +100,16 @@ func validate(conf *Config) {
 
 	err := validate.Struct(conf)
 	if err != nil {
-		kbc.PanicUserError("Invalid configuration: %s.", processValidateError(err.(validator.ValidationErrors)))
+		// nolint: errorlint
+		kbc.PanicUserErrorf("Invalid configuration: %s.", processValidateError(err.(validator.ValidationErrors)))
 	}
 }
 
-func processJsonError(e error) string {
-	switch e := e.(type) {
+func processJSONError(e error) string {
 	// Custom error message
-	case *json.UnmarshalTypeError:
-		return fmt.Sprintf("key \"%s\" has invalid type \"%s\"", e.Field, e.Value)
+	var typeError *json.UnmarshalTypeError
+	if errors.As(e, &typeError) {
+		return fmt.Sprintf("key \"%s\" has invalid type \"%s\"", typeError.Field, typeError.Value)
 	}
 
 	return e.Error()

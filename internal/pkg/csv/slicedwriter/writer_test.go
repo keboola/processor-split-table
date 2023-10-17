@@ -1,12 +1,14 @@
-package slicedWriter
+package slicedwriter
 
 import (
-	"github.com/stretchr/testify/assert"
-	"keboola.processor-split-table/src/config"
-	"keboola.processor-split-table/src/utils"
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/keboola/processor-split-table/internal/pkg/config"
+	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
 type testData struct {
@@ -17,6 +19,8 @@ type testData struct {
 }
 
 func TestNewSlicedWriter(t *testing.T) {
+	t.Parallel()
+
 	// Create temp dir
 	tempDir := t.TempDir()
 
@@ -44,6 +48,8 @@ func TestNewSlicedWriter(t *testing.T) {
 }
 
 func TestCreateNextSlice(t *testing.T) {
+	t.Parallel()
+
 	// Create temp dir
 	tempDir := t.TempDir()
 
@@ -72,6 +78,8 @@ func TestCreateNextSlice(t *testing.T) {
 }
 
 func TestIsSpaceForNextRowBytes(t *testing.T) {
+	t.Parallel()
+
 	// Create temp dir
 	tempDir := t.TempDir()
 
@@ -98,6 +106,8 @@ func TestIsSpaceForNextRowBytes(t *testing.T) {
 }
 
 func TestIsSpaceForNextRowRows(t *testing.T) {
+	t.Parallel()
+
 	// Create temp dir
 	tempDir := t.TempDir()
 
@@ -125,6 +135,8 @@ func TestIsSpaceForNextRowRows(t *testing.T) {
 }
 
 func TestBytesMode(t *testing.T) {
+	t.Parallel()
+
 	// Create temp dir
 	tempDir := t.TempDir()
 
@@ -161,6 +173,8 @@ func TestBytesMode(t *testing.T) {
 }
 
 func TestRowsMode(t *testing.T) {
+	t.Parallel()
+
 	// Create temp dir
 	tempDir := t.TempDir()
 
@@ -197,6 +211,8 @@ func TestRowsMode(t *testing.T) {
 }
 
 func TestSlicesMode(t *testing.T) {
+	t.Parallel()
+
 	// Create temp dir
 	tempDir := t.TempDir()
 
@@ -236,6 +252,8 @@ func TestSlicesMode(t *testing.T) {
 }
 
 func TestWriteCsv(t *testing.T) {
+	t.Parallel()
+
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
 

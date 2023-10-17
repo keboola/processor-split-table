@@ -1,16 +1,18 @@
 package processor
 
 import (
-	"github.com/dustin/go-humanize"
-	"keboola.processor-split-table/src/config"
-	"keboola.processor-split-table/src/csv"
-	"keboola.processor-split-table/src/finder"
-	"keboola.processor-split-table/src/kbc"
-	"keboola.processor-split-table/src/utils"
 	"log"
+
+	humanize "github.com/dustin/go-humanize"
+
+	"github.com/keboola/processor-split-table/internal/pkg/config"
+	"github.com/keboola/processor-split-table/internal/pkg/csv"
+	"github.com/keboola/processor-split-table/internal/pkg/finder"
+	"github.com/keboola/processor-split-table/internal/pkg/kbc"
+	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
-// Processor processes files found by Finder
+// Processor processes files found by Finder.
 type Processor struct {
 	logger    *log.Logger
 	config    *config.Config
@@ -41,7 +43,7 @@ func (p *Processor) Run() {
 			humanize.IBytes(p.config.Parameters.MinBytesPerSlice),
 		)
 	default:
-		kbc.PanicApplicationError("Unexpected mode \"%s\".", p.config.Parameters.Mode)
+		kbc.PanicApplicationErrorf("Unexpected mode \"%s\".", p.config.Parameters.Mode)
 	}
 
 	if p.config.Parameters.Gzip {
@@ -75,7 +77,7 @@ func (p *Processor) Run() {
 			utils.CopyRecursive(inPath, outPath)
 
 		default:
-			kbc.PanicApplicationError("Unexpected FileType \"%s\".", file.FileType)
+			kbc.PanicApplicationErrorf("Unexpected FileType \"%s\".", file.FileType)
 		}
 	}
 }

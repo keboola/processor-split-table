@@ -17,12 +17,12 @@ func (e *Error) Error() string {
 	return e.message
 }
 
-// ExitCode is processed in main.go
+// ExitCode is processed in main.go.
 func (e *Error) ExitCode() int {
 	return e.exitCode
 }
 
-// UserError logs message and stops program execution with exit code 1
+// UserError logs message and stops program execution with exit code 1.
 func UserError(format string, a ...interface{}) *Error {
 	format = strings.TrimSpace(format)
 	return &Error{
@@ -31,7 +31,7 @@ func UserError(format string, a ...interface{}) *Error {
 	}
 }
 
-// ApplicationError logs message and stops program execution with exit code 2
+// ApplicationError logs message and stops program execution with exit code 2.
 func ApplicationError(format string, a ...interface{}) *Error {
 	format = strings.TrimSpace(format)
 	return &Error{
@@ -40,11 +40,11 @@ func ApplicationError(format string, a ...interface{}) *Error {
 	}
 }
 
-func PanicApplicationError(format string, a ...interface{}) {
+func PanicApplicationErrorf(format string, a ...interface{}) {
 	panic(ApplicationError(format, a...))
 }
 
-func PanicUserError(format string, a ...interface{}) {
+func PanicUserErrorf(format string, a ...interface{}) {
 	panic(UserError(format, a...))
 }
 
