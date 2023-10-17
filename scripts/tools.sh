@@ -1,0 +1,40 @@
+#!/bin/bash
+
+set -o errexit          # Exit on most errors (see the manual)
+set -o errtrace         # Make sure any error trap is inherited
+set -o nounset          # Disallow expansion of unset variables
+set -o pipefail         # Use last non-zero exit code in a pipeline
+#set -o xtrace          # Trace the execution of the script (debug)
+
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+cd "$SCRIPT_DIR"
+
+# gotestsum
+if ! command -v gotestsum &> /dev/null
+then
+  ./install-gotestsum.sh -b $(go env GOPATH)/bin
+fi
+
+# golangci-lint
+if ! command -v golangci-lint &> /dev/null
+then
+  curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.2
+fi
+
+# gci
+if ! command -v gci &> /dev/null
+then
+  go install github.com/daixiang0/gci@latest
+fi
+
+# gofumpt
+if ! command -v gofumpt &> /dev/null
+then
+  go install mvdan.cc/gofumpt@latest
+fi
+
+# go-mod-upgrade
+if ! command -v go-mod-upgrade &> /dev/null
+then
+  go install github.com/oligot/go-mod-upgrade@latest
+fi

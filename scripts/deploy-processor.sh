@@ -18,8 +18,8 @@ eval $(docker run --rm \
     ecr:get-login ${KBC_DEVELOPERPORTAL_VENDOR} ${KBC_DEVELOPERPORTAL_APP})
 
 # Push to the repository
-docker tag ${APP_IMAGE}:latest ${REPOSITORY}:${GITHUB_TAG}
-docker tag ${APP_IMAGE}:latest ${REPOSITORY}:latest
+docker tag ${PROCESSOR_IMAGE}:latest ${REPOSITORY}:${GITHUB_TAG}
+docker tag ${PROCESSOR_IMAGE}:latest ${REPOSITORY}:latest
 docker push ${REPOSITORY}:${GITHUB_TAG}
 docker push ${REPOSITORY}:latest
 
