@@ -1,16 +1,11 @@
-package tests
+package processor
 
 import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
-	"github.com/otiai10/copy"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"io/fs"
-	"io/ioutil"
-	"keboola.processor-split-table/src/kbc"
-	"keboola.processor-split-table/src/utils"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -19,24 +14,31 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/otiai10/copy"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/keboola/processor-split-table/internal/pkg/kbc"
+	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
 // TestDataDirs runs all data-dir tests from the file directory.
 func TestDataDirs(t *testing.T) {
+	t.Parallel()
+
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
 
-	// Create temp dir
-	tempDir := t.TempDir()
-
 	// Compile binary, it will be run in the tests
-	srcDir := rootDir + "/.."
-	binary := CompileBinary(t, srcDir, tempDir)
+	entrypointDir := rootDir + "/../../cmd/processor"
+	binary := CompileBinary(t, entrypointDir, t.TempDir())
 
 	// Run binary in each data dir
 	for _, testDir := range GetDataDirs(t, rootDir) {
+		testDir := testDir
 		// Run test for each directory
 		t.Run(filepath.Base(testDir), func(t *testing.T) {
+			t.Parallel()
 			RunDataDirTest(t, testDir, binary)
 		})
 	}
@@ -44,6 +46,8 @@ func TestDataDirs(t *testing.T) {
 
 // RunDataDirTest runs one data-dir test.
 func RunDataDirTest(t *testing.T, testDir string, binary string) {
+	t.Helper()
+
 	// Create runtime data dir
 	dataDir := t.TempDir()
 
@@ -57,12 +61,12 @@ func RunDataDirTest(t *testing.T, testDir string, binary string) {
 	}
 
 	// Create common directories
-	_ = os.Mkdir(dataDir+"/out", 0644)
-	_ = os.Mkdir(dataDir+"/out/tables", 0644)
-	_ = os.Mkdir(dataDir+"/out/files", 0644)
-	_ = os.Mkdir(dataDir+"/in", 0644)
-	_ = os.Mkdir(dataDir+"/in/tables", 0644)
-	_ = os.Mkdir(dataDir+"/in/files", 0644)
+	_ = os.Mkdir(dataDir+"/out", 0o755)
+	_ = os.Mkdir(dataDir+"/out/tables", 0o755)
+	_ = os.Mkdir(dataDir+"/out/files", 0o755)
+	_ = os.Mkdir(dataDir+"/in", 0o755)
+	_ = os.Mkdir(dataDir+"/in/tables", 0o755)
+	_ = os.Mkdir(dataDir+"/in/files", 0o755)
 
 	// Prepare command
 	var stdout, stderr bytes.Buffer
@@ -94,6 +98,8 @@ func AssertExpectations(
 	stdout string,
 	stderr string,
 ) {
+	t.Helper()
+
 	expectedDir := testDir + "/expected/data/out"
 	hasExpectedStdout, expectedStdout := GetFileContent(t, testDir+"/expected-stdout", "")
 	hasExpectedStderr, expectedStderr := GetFileContent(t, testDir+"/expected-stderr", "")
@@ -146,13 +152,15 @@ func AssertExpectations(
 
 // GetFileContent or default value.
 func GetFileContent(t *testing.T, path string, def string) (exists bool, content string) {
+	t.Helper()
+
 	// Return default value if file not exists
 	if _, err := os.Stat(path); os.IsNotExist(err) == true {
 		return false, def
 	}
 
 	// Read content, handle error
-	contentBytes, err := ioutil.ReadFile(path)
+	contentBytes, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf(fmt.Sprint(err))
 	}
@@ -162,6 +170,8 @@ func GetFileContent(t *testing.T, path string, def string) (exists bool, content
 
 // GetDataDirs returns list of all dataDir tests in the root directory.
 func GetDataDirs(t *testing.T, root string) []string {
+	t.Helper()
+
 	var dirs []string
 
 	// Iterate over directory structure
@@ -184,7 +194,6 @@ func GetDataDirs(t *testing.T, root string) []string {
 
 		return nil
 	})
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,15 +201,16 @@ func GetDataDirs(t *testing.T, root string) []string {
 	return dirs
 }
 
-// CompileBinary compiles component to binary used in this test
-func CompileBinary(t *testing.T, srcDir string, tempDir string) string {
+// CompileBinary compiles component to binary used in this test.
+func CompileBinary(t *testing.T, entrypointDir string, tempDir string) string {
+	t.Helper()
+
 	var stdout, stderr bytes.Buffer
 	binaryPath := tempDir + "/bin_data_dir_tests"
-	cmd := exec.Command("go", "build", "-o", binaryPath, srcDir)
+	cmd := exec.Command("go", "build", "-o", binaryPath, entrypointDir)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
-
 	if err != nil {
 		t.Fatalf("Compilation failed: %s\n%s\n", stdout.Bytes(), stderr.Bytes())
 	}
@@ -213,7 +223,6 @@ func CompileBinary(t *testing.T, srcDir string, tempDir string) string {
 func WildcardToRegexp(pattern string) string {
 	var result strings.Builder
 	for i, literal := range strings.Split(pattern, "*") {
-
 		// Replace * with .*
 		if i > 0 {
 			result.WriteString(".*")
@@ -238,9 +247,8 @@ func unGzipAllInDir(dir string) {
 
 		return nil
 	})
-
 	if err != nil {
-		kbc.PanicApplicationError("Cannot iterate over directory \"%s\": %s \n", dir, err)
+		kbc.PanicApplicationErrorf("Cannot iterate over directory \"%s\": %s \n", dir, err)
 	}
 }
 
@@ -251,7 +259,7 @@ func unGzipFile(srcPath string) {
 	src := utils.OpenFile(srcPath, os.O_RDONLY)
 	gzReader, err := gzip.NewReader(src)
 	if err != nil {
-		kbc.PanicApplicationError("Cannot create gzip reader.")
+		kbc.PanicApplicationErrorf("Cannot create gzip reader.")
 	}
 
 	// Open target
@@ -259,19 +267,19 @@ func unGzipFile(srcPath string) {
 
 	// Decompress source content
 	if _, err = io.Copy(trg, gzReader); err != nil {
-		kbc.PanicApplicationError("Cannot decompress file \"%s\": %s", srcPath, err)
+		kbc.PanicApplicationErrorf("Cannot decompress file \"%s\": %s", srcPath, err)
 	}
 
 	// Close all
 	err = gzReader.Close()
 	if err != nil {
-		kbc.PanicApplicationError("Cannot close gzip reader.")
+		kbc.PanicApplicationErrorf("Cannot close gzip reader.")
 	}
 	utils.CloseFile(src, srcPath)
 	utils.CloseFile(trg, trgPath)
 
 	// Remove original file
 	if err := os.Remove(srcPath); err != nil {
-		kbc.PanicApplicationError("Cannot remove file \"%s\": %s", srcPath, err)
+		kbc.PanicApplicationErrorf("Cannot remove file \"%s\": %s", srcPath, err)
 	}
 }
