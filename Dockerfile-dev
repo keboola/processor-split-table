@@ -1,27 +1,33 @@
-FROM golang:1.16-buster
+FROM golang:1.21
 
-RUN apt-get update -y && \
-    apt-get install -y jq time
+ENV HOME=/my-home
+ENV GOMEMLIMIT=512MiB
+ENV GOCACHE=/tmp/cache/go
+ENV GOMODCACHE=/tmp/cache/go-mod
+ENV GOBIN=$GOPATH/bin
+ENV GOFLAGS="-mod=mod"
+ENV GOLANGCI_LINT_CACHE=/tmp/cache/golangci-lint
+ENV PATH="$PATH:$GOBIN"
 
-# Install staticcheck
-RUN curl --silent "https://api.github.com/repos/dominikh/go-tools/releases/latest" | \
-    jq -r '.assets[] | select(.name == "staticcheck_linux_amd64.tar.gz").browser_download_url' | \
-    wget -i - -O - | \
-    tar -xz --strip-components=1 -C /usr/local/bin staticcheck/staticcheck && \
-    chmod +x /usr/local/bin/staticcheck
+# Install editor
+RUN apt-get update && apt-get install -y nano
+ENV EDITOR=nano
 
-# Install richgo
-RUN curl --silent "https://api.github.com/repos/kyoh86/richgo/releases/latest" | \
-    jq -r '.assets[] | select(.name | endswith("_linux_amd64.tar.gz")).browser_download_url' | \
-    wget -i - -O - | \
-    tar -xz -C /usr/local/bin richgo && \
-    chmod +x /usr/local/bin/richgo
+# Install tools
+RUN mkdir -p /tmp/build
+COPY scripts /tmp/build/scripts
+RUN /tmp/build/scripts/tools.sh && rm -rf /tmp/build
 
+# Set prompt
+RUN mkdir -p ~ && \
+    echo 'PS1="\w > "' > ~/.bashrc
 
-ENV GOBIN=/code/build
+# Fix permissions
+RUN mkdir -p $GOPATH && chmod -R 777 $GOPATH && \
+    mkdir -p $GOCACHE && chmod -R 777 $GOCACHE && \
+    mkdir -p $GOMODCACHE && chmod -R 777 $GOMODCACHE && \
+    mkdir -p $GOLANGCI_LINT_CACHE && chmod -R 777 $GOLANGCI_LINT_CACHE && \
+    mkdir -p $HOME && chmod -R 777 $HOME
 
 WORKDIR /code/
-COPY . /code/
-RUN mkdir /code/build && mkdir /code/data && mkdir /code/go
-
 CMD ["/bin/bash"]

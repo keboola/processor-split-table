@@ -1,0 +1,112 @@
+run:
+  timeout: 5m
+  concurrency: 8
+  tests: true # check test files
+  skip-files: [ ]
+  skip-dirs:
+    - build
+    - data
+    - scripts
+    - vendor
+  skip-dirs-use-default: true
+  modules-download-mode: mod
+
+output:
+  sort-results: true
+
+linters-settings:
+  # Errors from the project can be returned without wrapping
+  wrapcheck:
+    ignorePackageGlobs:
+      - github.com/keboola/processor-split-table/*
+  # Gci - improved version of goimports
+  gci:
+    sections:
+      - standard # Captures all standard packages if they do not match another section.
+      - default # Contains all imports that could not be matched to another section type.
+      - prefix(github.com/keboola/processor-split-table)
+
+# https://golangci-lint.run/usage/linters
+linters:
+  disable-all: true
+  enable:
+    - asciicheck
+    - bodyclose
+    - dogsled
+    - dupl
+    - durationcheck
+    - errcheck
+    - errname
+    - errorlint
+    - exportloopref
+    - forbidigo
+    - gci
+    - gochecknoglobals
+    - gochecknoinits
+    - goconst
+    - gocritic
+    - godot
+    - godox
+    - gofumpt
+    - goheader
+    - gomodguard
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - importas
+    - ineffassign
+    - makezero
+    - misspell
+    - nakedret
+    - nilerr
+    - noctx
+    - predeclared
+    - promlinter
+    - rowserrcheck
+    - sqlclosecheck
+    - staticcheck
+    - stylecheck
+    - tagliatelle
+    - thelper
+    - tparallel
+    - paralleltest
+    - unconvert
+    - unparam
+    - unused
+    - wastedassign
+    - whitespace
+    # DISABLED
+    #- goimports # replaced with gci
+    #- gofmt # replaced with gofumpt
+    #- nolintlint # strange behavior
+    #- gomoddirectives # allow replace directive in go.mod
+    # TODO
+    #- funlen
+    #- gocyclo
+    #- gocognit
+    #- cyclop
+    #- nestif
+    #- lll
+    #- gomnd
+
+issues:
+  max-same-issues: 25
+
+  # List of regexps of issue texts to exclude
+  exclude: []
+
+  # Excluding configuration per-path, per-linter, per-text and per-source
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - goconst
+        - gosec
+        - gochecknoglobals
+        - errcheck
+        - errorlint
+        - dupl
+        - dogsled
+        - bodyclose

@@ -1,5 +1,9 @@
-# Split Table Processor
-[![Build Status](https://github.com/keboola/processor-split-table/actions/workflows/push.yml/badge.svg)](https://github.com/keboola/processor-split-table/actions)
+# Split Table CLI / Processor
+
+## CLI
+- TODO
+
+## Split Table Processor
 
 - Takes all CSV files in `/data/in/tables` and converts them to [sliced tables](https://developers.keboola.com/extend/common-interface/folders/#sliced-tables).
 - The default slice size is `500MiB`, the number of rows per slice can also be configured.
@@ -9,7 +13,7 @@
 - CSV delimiter and enclosure are loaded from manifest if set.
 - Files and already sliced tables are copied without change.
 
-# Usage
+## Usage
 
 It supports optional parameters:
 
@@ -87,12 +91,17 @@ docker-compose build
 Run the test suite and download the dependencies using this command:
 
 ```
-docker-compose run --rm dev ./test.sh
+docker-compose run --rm -u "$UID:$GID" dev make ci
 ```
 
-In IntelliJ IDEA is needed to set project GOPATH to `/go` directory.
 
-# Integration
+Run bash in the container:
+
+```
+docker-compose run --rm -u "$UID:$GID" dev bash
+```
+
+## Integration
 
 For information about deployment and integration with KBC, please refer to
 the [deployment section of developers documentation](https://developers.keboola.com/extend/component/deployment/)

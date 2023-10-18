@@ -1,5 +1,5 @@
 !.gitkeep
-.idea
-build/*
-data/*
-go/*
+/.idea
+/build/target/*
+/data/*
+/vendor
