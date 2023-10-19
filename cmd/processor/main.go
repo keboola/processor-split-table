@@ -16,66 +16,92 @@ import (
 
 func main() {
 	// Handle panic with correct exit code
-	defer handlePanic()
+	defer func() {
+		if err := recover(); err != nil {
+			exitWithError(err)
+		}
+	}()
 
 	// Remove timestamp prefix from logs
 	log.SetFlags(0)
 
 	// Cpu profiling can be enabled by flag
-	if startCPUProfileIfFlagSet() {
+	if started, err := startCPUProfileIfFlagSet(); err != nil {
+		exitWithError(err)
+	} else if started {
 		defer pprof.StopCPUProfile()
 	}
 
-	logger := log.New(os.Stdout, "", 0)
-	conf := config.LoadConfig(kbc.GetDataDir() + "/config.json")
-	inputDir := kbc.GetInputDir()
-	outputDir := kbc.GetOutputDir()
-	files := finder.FindFilesRecursive(inputDir)
-	processor.NewProcessor(logger, conf, inputDir, outputDir, files).Run()
-}
-
-func handlePanic() {
-	if err := recover(); err != nil {
-		var msg string
-		var exitCode int
-
-		switch v := err.(type) {
-		case *kbc.Error:
-			// Load exit code from error if possible
-			msg = v.Error()
-			exitCode = v.ExitCode()
-		default:
-			// ApplicationError by default
-			msg = fmt.Sprintln(err)
-			exitCode = 2
-		}
-
-		// Print error
-		log.Println(msg)
-
-		// Log stack trace for Application Error
-		if exitCode > 1 {
-			log.Println("Trace: \n" + string(debug.Stack()))
-		}
-
-		os.Exit(exitCode)
+	if err := run(); err != nil {
+		exitWithError(err)
 	}
 }
 
-func startCPUProfileIfFlagSet() bool {
-	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to file")
+func run() error {
+	logger := log.New(os.Stdout, "", 0)
+	inputDir := kbc.GetInputDir()
+	outputDir := kbc.GetOutputDir()
+
+	// Load config
+	conf, err := config.LoadConfig(kbc.GetDataDir() + "/config.json")
+	if err != nil {
+		return err
+	}
+
+	// Find files
+	files, err := finder.FindFilesRecursive(inputDir)
+	if err != nil {
+		return err
+	}
+
+	// Process files
+	if err := processor.NewProcessor(logger, conf, inputDir, outputDir, files).Run(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func exitWithError(err any) {
+	// Get message
+	var msg string
+	if e, ok := err.(error); ok {
+		msg = e.Error()
+	} else {
+		msg = fmt.Sprintf("%v", msg)
+	}
+
+	// Get exit code
+	exitCode := 2 // application error by default
+	if e, ok := err.(kbc.Error); ok {
+		exitCode = e.ExitCode()
+	}
+
+	// Print message
+	log.Println("Error:", msg)
+
+	// Log stack trace for Application Error
+	if exitCode > 1 {
+		log.Println("Trace: \n" + string(debug.Stack()))
+	}
+
+	os.Exit(exitCode)
+}
+
+func startCPUProfileIfFlagSet() (bool, error) {
+	ptr := flag.String("cpuprofile", "", "write cpu profile to file")
 	flag.Parse()
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
+	if *ptr != "" {
+		f, err := os.Create(*ptr)
 		if err != nil {
-			kbc.PanicApplicationErrorf("%s", err)
+			return false, err
 		}
 		err = pprof.StartCPUProfile(f)
 		if err != nil {
-			kbc.PanicApplicationErrorf("%s", err)
+			return false, err
 		}
-		return true
+		return true, nil
 	}
 
-	return false
+	return false, nil
 }

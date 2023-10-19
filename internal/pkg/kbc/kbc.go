@@ -8,44 +8,28 @@ import (
 	"strings"
 )
 
-type Error struct {
-	message  string
-	exitCode int
+const NewFilePermissions = 0o600
+
+type Error interface {
+	error
+	ExitCode() int
 }
 
-func (e *Error) Error() string {
-	return e.message
+// UserError is an expected error that should be displayed to the user.
+// It triggers exit code 1.
+type UserError struct {
+	error
 }
 
 // ExitCode is processed in main.go.
-func (e *Error) ExitCode() int {
-	return e.exitCode
+func (e UserError) ExitCode() int {
+	return 1
 }
 
-// UserError logs message and stops program execution with exit code 1.
-func UserError(format string, a ...interface{}) *Error {
+// UserErrorf logs message and stops program execution with exit code 1.
+func UserErrorf(format string, a ...interface{}) error {
 	format = strings.TrimSpace(format)
-	return &Error{
-		fmt.Sprintf(format, a...),
-		1,
-	}
-}
-
-// ApplicationError logs message and stops program execution with exit code 2.
-func ApplicationError(format string, a ...interface{}) *Error {
-	format = strings.TrimSpace(format)
-	return &Error{
-		fmt.Sprintf(format, a...),
-		2,
-	}
-}
-
-func PanicApplicationErrorf(format string, a ...interface{}) {
-	panic(ApplicationError(format, a...))
-}
-
-func PanicUserErrorf(format string, a ...interface{}) {
-	panic(UserError(format, a...))
+	return &UserError{error: fmt.Errorf(format, a...)}
 }
 
 func GetDataDir() string {
