@@ -6,10 +6,10 @@ import (
 	"github.com/dustin/go-humanize"
 
 	"github.com/keboola/processor-split-table/internal/pkg/config"
-	"github.com/keboola/processor-split-table/internal/pkg/csv"
 	"github.com/keboola/processor-split-table/internal/pkg/finder"
 	"github.com/keboola/processor-split-table/internal/pkg/kbc"
 	"github.com/keboola/processor-split-table/internal/pkg/log"
+	"github.com/keboola/processor-split-table/internal/pkg/slicer"
 	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
@@ -65,7 +65,7 @@ func (p *Processor) Run() error {
 		switch file.FileType {
 		case finder.CsvTableSingle:
 			// Single file CSV tables -> split
-			if err := csv.SliceCsv(p.logger, p.config, file.RelativePath, inPath, inManifestPath, outPath, outManifestPath); err != nil {
+			if err := slicer.SliceCsv(p.logger, p.config, file.RelativePath, inPath, inManifestPath, outPath, outManifestPath); err != nil {
 				return err
 			}
 		case finder.Directory:

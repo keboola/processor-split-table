@@ -1,4 +1,4 @@
-package csv
+package slicer
 
 import (
 	"fmt"
@@ -6,10 +6,10 @@ import (
 	"github.com/dustin/go-humanize"
 
 	"github.com/keboola/processor-split-table/internal/pkg/config"
-	manifestPkg "github.com/keboola/processor-split-table/internal/pkg/csv/manifest"
-	"github.com/keboola/processor-split-table/internal/pkg/csv/rowsreader"
-	"github.com/keboola/processor-split-table/internal/pkg/csv/slicedwriter"
 	"github.com/keboola/processor-split-table/internal/pkg/log"
+	manifestPkg "github.com/keboola/processor-split-table/internal/pkg/slicer/manifest"
+	"github.com/keboola/processor-split-table/internal/pkg/slicer/rowsreader"
+	"github.com/keboola/processor-split-table/internal/pkg/slicer/slicedwriter"
 	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
