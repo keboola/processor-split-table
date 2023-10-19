@@ -1,9 +1,11 @@
+// Package slicer provider slicing of an input table to an output table according to the configuration.
 package slicer
 
 import (
 	"fmt"
 
 	"github.com/dustin/go-humanize"
+	"github.com/go-playground/validator/v10"
 
 	"github.com/keboola/processor-split-table/internal/pkg/log"
 	manifestPkg "github.com/keboola/processor-split-table/internal/pkg/manifest"
@@ -13,22 +15,37 @@ import (
 	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
-func SliceCsv(logger log.Logger, conf config.Config, relativePath string, inPath string, inManifestPath string, outPath string, outManifestPath string) (err error) {
-	logger.Infof("Slicing table \"%s\".", relativePath)
+type Table struct {
+	config.Config
+	Name            string `validate:"required"`
+	InPath          string `validate:"required"`
+	InManifestPath  string
+	OutPath         string `validate:"required"`
+	OutManifestPath string
+}
+
+func SliceTable(logger log.Logger, table Table) (err error) {
+	logger.Infof("Slicing table \"%s\".", table.Name)
+
+	// Validate
+	val := validator.New()
+	if err := val.Struct(table); err != nil {
+		return fmt.Errorf(`table definition is not valid: %w`, err)
+	}
 
 	// Create target dir
-	if err := utils.Mkdir(outPath); err != nil {
+	if err := utils.Mkdir(table.OutPath); err != nil {
 		return err
 	}
 
 	// Get file size
-	fileSize, err := utils.FileSize(inPath)
+	fileSize, err := utils.FileSize(table.InPath)
 	if err != nil {
 		return err
 	}
 
 	// Create writer
-	writer, err := slicedwriter.New(conf, fileSize, outPath)
+	writer, err := slicedwriter.New(table.Config, fileSize, table.OutPath)
 	if err != nil {
 		return err
 	}
@@ -38,20 +55,13 @@ func SliceCsv(logger log.Logger, conf config.Config, relativePath string, inPath
 		}
 	}()
 
-	// Load manifest, may not exist
-	found, err := utils.FileExists(inManifestPath)
-	if err != nil {
-		return err
-	}
-
-	createManifest := !found
-	manifest, err := manifestPkg.LoadManifest(inManifestPath)
+	manifest, err := manifestPkg.LoadManifest(table.InManifestPath)
 	if err != nil {
 		return err
 	}
 
 	// Create reader
-	reader, err := rowsreader.NewCsvReader(inPath, manifest.Delimiter(), manifest.Enclosure())
+	reader, err := rowsreader.NewCsvReader(table.InPath, manifest.Delimiter(), manifest.Enclosure())
 	if err != nil {
 		return err
 	}
@@ -75,29 +85,27 @@ func SliceCsv(logger log.Logger, conf config.Config, relativePath string, inPath
 
 	// Check if no error
 	if reader.Err() != nil {
-		return fmt.Errorf("error when reading CSV \"%s\": %w", inPath, reader.Err())
+		return fmt.Errorf("error when reading CSV \"%s\": %w", table.InPath, reader.Err())
 	}
 
 	// Write manifest
-	if err := manifest.WriteTo(outManifestPath); err != nil {
-		return err
+	if table.OutManifestPath != "" {
+		if err := manifest.WriteTo(table.OutManifestPath); err != nil {
+			return err
+		}
 	}
 
 	// Log info
-	return logResult(logger, writer, relativePath, outPath, createManifest, addColumnsToManifest)
-}
-
-func logResult(logger log.Logger, w *slicedwriter.SlicedWriter, relativePath string, absPath string, createManifest bool, addColumnsToManifest bool) error {
 	msg := fmt.Sprintf(
 		"Table \"%s\" sliced, written %d slices, %s rows, total size %s",
-		relativePath,
-		w.Slices(),
-		humanize.Comma(int64(w.AllRows())),
-		humanize.IBytes(w.AlLBytes()),
+		table.Name,
+		writer.Slices(),
+		humanize.Comma(int64(writer.AllRows())),
+		humanize.IBytes(writer.AlLBytes()),
 	)
 
-	if w.GzipEnabled() {
-		if dirSize, err := utils.DirSize(absPath); err == nil {
+	if writer.GzipEnabled() {
+		if dirSize, err := utils.DirSize(table.OutPath); err == nil {
 			msg += fmt.Sprintf(", gzipped size %s", humanize.IBytes(dirSize))
 		} else {
 			return err
@@ -105,9 +113,9 @@ func logResult(logger log.Logger, w *slicedwriter.SlicedWriter, relativePath str
 	}
 
 	switch {
-	case createManifest:
+	case !manifest.Exists():
 		msg += ", manifest created."
-	case addColumnsToManifest:
+	case manifest.Modified():
 		msg += ", columns added to manifest."
 	default:
 		msg += "."
