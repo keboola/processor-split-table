@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"runtime/debug"
 	"runtime/pprof"
@@ -11,34 +10,33 @@ import (
 	"github.com/keboola/processor-split-table/internal/pkg/config"
 	"github.com/keboola/processor-split-table/internal/pkg/finder"
 	"github.com/keboola/processor-split-table/internal/pkg/kbc"
+	"github.com/keboola/processor-split-table/internal/pkg/log"
 	"github.com/keboola/processor-split-table/internal/pkg/processor"
 )
 
 func main() {
+	logger := log.NewLogger()
+
 	// Handle panic with correct exit code
 	defer func() {
 		if err := recover(); err != nil {
-			exitWithError(err)
+			exitWithError(logger, err)
 		}
 	}()
 
-	// Remove timestamp prefix from logs
-	log.SetFlags(0)
-
 	// Cpu profiling can be enabled by flag
 	if started, err := startCPUProfileIfFlagSet(); err != nil {
-		exitWithError(err)
+		exitWithError(logger, err)
 	} else if started {
 		defer pprof.StopCPUProfile()
 	}
 
-	if err := run(); err != nil {
-		exitWithError(err)
+	if err := run(logger); err != nil {
+		exitWithError(logger, err)
 	}
 }
 
-func run() error {
-	logger := log.New(os.Stdout, "", 0)
+func run(logger log.Logger) error {
 	inputDir := kbc.GetInputDir()
 	outputDir := kbc.GetOutputDir()
 
@@ -62,7 +60,7 @@ func run() error {
 	return nil
 }
 
-func exitWithError(err any) {
+func exitWithError(logger log.Logger, err any) {
 	// Get message
 	var msg string
 	if e, ok := err.(error); ok {
@@ -78,11 +76,11 @@ func exitWithError(err any) {
 	}
 
 	// Print message
-	log.Println("Error:", msg)
+	logger.Error("Error: ", msg)
 
 	// Log stack trace for Application Error
 	if exitCode > 1 {
-		log.Println("Trace: \n" + string(debug.Stack()))
+		logger.Error("Trace: \n" + string(debug.Stack()))
 	}
 
 	os.Exit(exitCode)
