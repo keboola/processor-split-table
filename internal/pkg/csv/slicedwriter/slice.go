@@ -2,6 +2,7 @@ package slicedwriter
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"os"
 	"runtime"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/keboola/processor-split-table/internal/pkg/config"
 	"github.com/keboola/processor-split-table/internal/pkg/kbc"
-	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
 const (
@@ -31,16 +31,18 @@ type slice struct {
 	bytesFromGc uint64 // bytes from last garbage collector run
 }
 
-func NewSlice(mode config.Mode, maxBytes uint64, maxRows uint64, gzipEnabled bool, gzipLevel int, filePath string) *slice {
-	file := utils.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
+func newSlice(mode config.Mode, maxBytes uint64, maxRows uint64, gzipEnabled bool, gzipLevel int, filePath string) (*slice, error) {
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, kbc.NewFilePermissions)
+	if err != nil {
+		return nil, err
+	}
 
 	// Use gzip compression?
-	var err error
 	var writer io.Writer
 	if gzipEnabled {
 		writer, err = gzip.NewWriterLevel(file, gzipLevel)
 		if err != nil {
-			kbc.PanicApplicationErrorf("Cannot create gzip writer: %s", err)
+			return nil, fmt.Errorf("cannot create gzip writer: %w", err)
 		}
 	} else {
 		writer = bufio.NewWriterSize(file, OutBufferSize)
@@ -56,16 +58,16 @@ func NewSlice(mode config.Mode, maxBytes uint64, maxRows uint64, gzipEnabled boo
 		0,
 		0,
 		0,
-	}
+	}, nil
 }
 
-func (s *slice) Write(row []byte, rowLength uint64) {
+func (s *slice) Write(row []byte, rowLength uint64) error {
 	n, err := s.writer.Write(row)
 	if err != nil {
-		kbc.PanicApplicationErrorf("Cannot write row to slice \"%s\": %s", s.path, err)
+		return fmt.Errorf("cannot write row to slice \"%s\": %w", s.path, err)
 	}
 	if n != int(rowLength) {
-		kbc.PanicApplicationErrorf("Unexpected length written to \"%s\". Expected %d, written %d.", s.path, rowLength, n)
+		return fmt.Errorf("unexpected length written to \"%s\", expected %d, written %d", s.path, rowLength, n)
 	}
 	s.rows++
 	s.bytes += rowLength
@@ -76,33 +78,37 @@ func (s *slice) Write(row []byte, rowLength uint64) {
 		runtime.GC()
 		s.bytesFromGc = 0
 	}
+
+	return nil
 }
 
-func (s *slice) Close() {
+func (s *slice) Close() error {
 	// Close writer according to its type
 	switch w := s.writer.(type) {
 	case *bufio.Writer:
 		err := w.Flush()
 		if err != nil {
-			kbc.PanicApplicationErrorf("Cannot flush writer when closing slice \"%s\": %s", s.path, err)
+			return fmt.Errorf("cannot flush writer when closing slice \"%s\": %w", s.path, err)
 		}
 	case io.WriteCloser:
 		err := w.Close()
 		if err != nil {
-			kbc.PanicApplicationErrorf("Cannot close writer when closing slice \"%s\": %s", s.path, err)
+			return fmt.Errorf("cannot close writer when closing slice \"%s\": %w", s.path, err)
 		}
 	default:
-		kbc.PanicApplicationErrorf("Unexpected writer type \"%T\".", s.writer)
+		return fmt.Errorf("unexpected writer type \"%T\"", s.writer)
 	}
 
 	// Close file
 	err := s.file.Close()
 	if err != nil {
-		kbc.PanicApplicationErrorf("Cannot close file when closing slice \"%s\": %s", s.path, err)
+		return fmt.Errorf("cannot close file when closing slice \"%s\": %w", s.path, err)
 	}
 
 	// Go runtime doesn't know maximum memory in Kubernetes/Docker, so we clean-up after each slice.
 	runtime.GC()
+
+	return nil
 }
 
 func (s *slice) IsSpaceForNextRow(rowLength uint64) bool {
@@ -117,7 +123,6 @@ func (s *slice) IsSpaceForNextRow(rowLength uint64) bool {
 	case config.ModeRows:
 		return s.rows < s.maxRows
 	default:
-		kbc.PanicApplicationErrorf("Unexpected sliced writer mode \"%s\".", s.mode)
-		return false // unreachable
+		panic(fmt.Errorf("unexpected sliced writer mode \"%v\"", s.mode))
 	}
 }

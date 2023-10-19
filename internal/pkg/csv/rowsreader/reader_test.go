@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testDataForFunc struct {
@@ -28,8 +29,13 @@ func TestReadHeader(t *testing.T) {
 
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
-	csvReader := NewCsvReader(rootDir+"/fixtures/two_rows.csv", ',', '"')
-	assert.Equal(t, []string{"abc", "def"}, csvReader.Header())
+
+	csvReader, err := NewCsvReader(rootDir+"/fixtures/two_rows.csv", ',', '"')
+	require.NoError(t, err)
+
+	header, err := csvReader.Header()
+	require.NoError(t, err)
+	assert.Equal(t, []string{"abc", "def"}, header)
 }
 
 func TestReadHeaderCannotParse(t *testing.T) {
@@ -37,10 +43,14 @@ func TestReadHeaderCannotParse(t *testing.T) {
 
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
-	csvReader := NewCsvReader(rootDir+"/fixtures/bad_header.csv", ',', '"')
-	assert.PanicsWithError(t, "Cannot parse CSV header: unexpected token \"missing enclosure\n1\" before enclosure at position 28.", func() {
-		csvReader.Header()
-	})
+
+	csvReader, err := NewCsvReader(rootDir+"/fixtures/bad_header.csv", ',', '"')
+	require.NoError(t, err)
+
+	_, err = csvReader.Header()
+	if assert.Error(t, err) {
+		assert.Equal(t, "cannot parse CSV header: unexpected token \"missing enclosure\n1\" before enclosure at position 28", err.Error())
+	}
 }
 
 func TestReadHeaderRowAlreadyRead(t *testing.T) {
@@ -48,15 +58,16 @@ func TestReadHeaderRowAlreadyRead(t *testing.T) {
 
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
-	csvReader := NewCsvReader(rootDir+"/fixtures/two_rows.csv", ',', '"')
+
+	csvReader, err := NewCsvReader(rootDir+"/fixtures/two_rows.csv", ',', '"')
+	require.NoError(t, err)
+
 	csvReader.Read()
-	assert.PanicsWithError(
-		t,
-		"The header cannot be read, other lines have already been read from CSV \"two_rows.csv\".",
-		func() {
-			csvReader.Header()
-		},
-	)
+
+	_, err = csvReader.Header()
+	if assert.Error(t, err) {
+		assert.Equal(t, `the header cannot be read, other lines have already been read from CSV "two_rows.csv"`, err.Error())
+	}
 }
 
 func TestReadHeaderEmptyFile(t *testing.T) {
@@ -64,14 +75,14 @@ func TestReadHeaderEmptyFile(t *testing.T) {
 
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
-	csvReader := NewCsvReader(rootDir+"/fixtures/empty.csv", ',', '"')
-	assert.PanicsWithError(
-		t,
-		"Missing header row in CSV \"empty.csv\".",
-		func() {
-			csvReader.Header()
-		},
-	)
+
+	csvReader, err := NewCsvReader(rootDir+"/fixtures/empty.csv", ',', '"')
+	require.NoError(t, err)
+
+	_, err = csvReader.Header()
+	if assert.Error(t, err) {
+		assert.Equal(t, `missing header row in CSV "empty.csv"`, err.Error())
+	}
 }
 
 func TestReadCsv(t *testing.T) {
@@ -81,7 +92,10 @@ func TestReadCsv(t *testing.T) {
 	rootDir := filepath.Dir(testFile)
 	for _, testData := range getReadCsvTestData() {
 		var rows []string
-		csvReader := NewCsvReader(rootDir+"/fixtures/"+testData.csvPath, ',', '"')
+
+		csvReader, err := NewCsvReader(rootDir+"/fixtures/"+testData.csvPath, ',', '"')
+		require.NoError(t, err)
+
 		for csvReader.Read() {
 			rows = append(rows, string(csvReader.Bytes()))
 		}

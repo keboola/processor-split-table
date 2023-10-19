@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/keboola/processor-split-table/internal/pkg/config"
 	"github.com/keboola/processor-split-table/internal/pkg/utils"
@@ -33,7 +34,8 @@ func TestNewSlicedWriter(t *testing.T) {
 	}
 
 	// Create writer
-	w := NewSlicedWriterFromConf(conf, 1000, tempDir)
+	w, err := NewSlicedWriterFromConf(conf, 1000, tempDir)
+	require.NoError(t, err)
 
 	// Assert
 	assert.Equal(t, tempDir, w.dirPath)
@@ -62,8 +64,10 @@ func TestCreateNextSlice(t *testing.T) {
 	}
 
 	// Create writer
-	w := NewSlicedWriterFromConf(conf, 1000, tempDir)
-	w.createNextSlice()
+	w, err := NewSlicedWriterFromConf(conf, 1000, tempDir)
+	require.NoError(t, err)
+
+	require.NoError(t, w.createNextSlice())
 
 	// Assert
 	assert.Equal(t, tempDir, w.dirPath)
@@ -92,7 +96,8 @@ func TestIsSpaceForNextRowBytes(t *testing.T) {
 	}
 
 	// Create writer
-	w := NewSlicedWriterFromConf(conf, 1000, tempDir)
+	w, err := NewSlicedWriterFromConf(conf, 1000, tempDir)
+	require.NoError(t, err)
 	w.allRows = 10
 	w.allBytes = 200
 	w.slice.rows = 5
@@ -120,7 +125,8 @@ func TestIsSpaceForNextRowRows(t *testing.T) {
 	}
 
 	// Create writer
-	w := NewSlicedWriterFromConf(conf, 1000, tempDir)
+	w, err := NewSlicedWriterFromConf(conf, 1000, tempDir)
+	require.NoError(t, err)
 	w.allRows = 10
 	w.allBytes = 200
 	w.slice.rows = 5 // <<<<<< 5 rows left
@@ -151,24 +157,25 @@ func TestBytesMode(t *testing.T) {
 	}
 
 	// Create writer
-	w := NewSlicedWriterFromConf(conf, 1000, tempDir)
+	w, err := NewSlicedWriterFromConf(conf, 1000, tempDir)
+	require.NoError(t, err)
 
 	// 1 slice
-	w.Write([]byte("\"1bc\",\"def\"\n")) // <<<<<< 12B
+	assert.NoError(t, w.Write([]byte("\"1bc\",\"def\"\n"))) // <<<<<< 12B
 	assert.Equal(t, uint32(1), w.sliceNumber)
-	w.Write([]byte("\"2bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"2bc\",\"def\"\n")))
 	assert.Equal(t, uint32(1), w.sliceNumber) // <<<<<< 24B
-	w.Write([]byte("\"3bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"3bc\",\"def\"\n")))
 	assert.Equal(t, uint32(1), w.sliceNumber) // <<<<<< 32B
 	// 2 slice
-	w.Write([]byte("\"4bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"4bc\",\"def\"\n")))
 	assert.Equal(t, uint32(2), w.sliceNumber) // <<<<<< 44B -> new slice -> 12B
-	w.Write([]byte("\"5bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"5bc\",\"def\"\n")))
 	assert.Equal(t, uint32(2), w.sliceNumber)
-	w.Write([]byte("\"6bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"6bc\",\"def\"\n")))
 	assert.Equal(t, uint32(2), w.sliceNumber)
 	// 3 slice
-	w.Write([]byte("\"7bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"7bc\",\"def\"\n")))
 	assert.Equal(t, uint32(3), w.sliceNumber)
 }
 
@@ -189,24 +196,25 @@ func TestRowsMode(t *testing.T) {
 	}
 
 	// Create writer
-	w := NewSlicedWriterFromConf(conf, 1000, tempDir)
+	w, err := NewSlicedWriterFromConf(conf, 1000, tempDir)
+	require.NoError(t, err)
 
 	// 1 slice
-	w.Write([]byte("\"1bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"1bc\",\"def\"\n")))
 	assert.Equal(t, uint32(1), w.sliceNumber)
-	w.Write([]byte("\"2bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"2bc\",\"def\"\n")))
 	assert.Equal(t, uint32(1), w.sliceNumber)
-	w.Write([]byte("\"3bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"3bc\",\"def\"\n")))
 	assert.Equal(t, uint32(1), w.sliceNumber)
 	// 2 slice
-	w.Write([]byte("\"4bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"4bc\",\"def\"\n")))
 	assert.Equal(t, uint32(2), w.sliceNumber)
-	w.Write([]byte("\"5bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"5bc\",\"def\"\n")))
 	assert.Equal(t, uint32(2), w.sliceNumber)
-	w.Write([]byte("\"6bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"6bc\",\"def\"\n")))
 	assert.Equal(t, uint32(2), w.sliceNumber)
 	// 3 slice
-	w.Write([]byte("\"7bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"7bc\",\"def\"\n")))
 	assert.Equal(t, uint32(3), w.sliceNumber)
 }
 
@@ -228,26 +236,27 @@ func TestSlicesMode(t *testing.T) {
 	}
 
 	// Create writer
-	w := NewSlicedWriterFromConf(conf, 7*12, tempDir)
+	w, err := NewSlicedWriterFromConf(conf, 7*12, tempDir)
+	require.NoError(t, err)
 	assert.Equal(t, uint32(3), w.maxSlices)
 	assert.Equal(t, uint64(28), w.bytesPerSlice) // 7 row * 12 bytes / 3 slices = 28 bytes per slice
 
 	// 1 slice
-	w.Write([]byte("\"1bc\",\"def\"\n")) // 12 bytes
+	assert.NoError(t, w.Write([]byte("\"1bc\",\"def\"\n"))) // 12 bytes
 	assert.Equal(t, uint32(1), w.sliceNumber)
-	w.Write([]byte("\"2bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"2bc\",\"def\"\n")))
 	assert.Equal(t, uint32(1), w.sliceNumber)
 	// 2 slice
-	w.Write([]byte("\"3bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"3bc\",\"def\"\n")))
 	assert.Equal(t, uint32(2), w.sliceNumber)
-	w.Write([]byte("\"4bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"4bc\",\"def\"\n")))
 	assert.Equal(t, uint32(2), w.sliceNumber)
 	// 3 slice
-	w.Write([]byte("\"5bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"5bc\",\"def\"\n")))
 	assert.Equal(t, uint32(3), w.sliceNumber)
-	w.Write([]byte("\"6bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"6bc\",\"def\"\n")))
 	assert.Equal(t, uint32(3), w.sliceNumber)
-	w.Write([]byte("\"7bc\",\"def\"\n"))
+	assert.NoError(t, w.Write([]byte("\"7bc\",\"def\"\n")))
 	assert.Equal(t, uint32(3), w.sliceNumber)
 }
 
@@ -259,11 +268,12 @@ func TestWriteCsv(t *testing.T) {
 
 	for _, testData := range getReadCsvTestData() {
 		tempDir := t.TempDir()
-		w := NewSlicedWriterFromConf(testData.conf, 1000, tempDir)
+		w, err := NewSlicedWriterFromConf(testData.conf, 1000, tempDir)
+		require.NoError(t, err)
 		for _, row := range testData.rows {
-			w.Write([]byte(row))
+			assert.NoError(t, w.Write([]byte(row)))
 		}
-		w.Close()
+		assert.NoError(t, w.Close())
 
 		// Assert
 		utils.AssertDirectoryContentsSame(t, rootDir+"/fixtures/"+testData.expectedPath, tempDir)

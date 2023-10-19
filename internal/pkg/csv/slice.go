@@ -10,53 +10,86 @@ import (
 	manifestPkg "github.com/keboola/processor-split-table/internal/pkg/csv/manifest"
 	"github.com/keboola/processor-split-table/internal/pkg/csv/rowsreader"
 	"github.com/keboola/processor-split-table/internal/pkg/csv/slicedwriter"
-	"github.com/keboola/processor-split-table/internal/pkg/kbc"
 	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
-func SliceCsv(logger *log.Logger, conf *config.Config, relativePath string, inPath string, inManifestPath string, outPath string, outManifestPath string) {
+func SliceCsv(logger *log.Logger, conf *config.Config, relativePath string, inPath string, inManifestPath string, outPath string, outManifestPath string) (err error) {
 	logger.Printf("Slicing table \"%s\".\n", relativePath)
 
 	// Create target dir
-	utils.Mkdir(outPath)
+	if err := utils.Mkdir(outPath); err != nil {
+		return err
+	}
+
+	// Get file size
+	fileSize, err := utils.FileSize(inPath)
+	if err != nil {
+		return err
+	}
 
 	// Create writer
-	writer := slicedwriter.NewSlicedWriterFromConf(conf, utils.FileSize(inPath), outPath)
-	defer writer.Close()
+	writer, err := slicedwriter.NewSlicedWriterFromConf(conf, fileSize, outPath)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := writer.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+	}()
 
 	// Load manifest, may not exist
-	createManifest := !utils.FileExists(inManifestPath)
-	manifest := manifestPkg.LoadManifest(inManifestPath)
+	found, err := utils.FileExists(inManifestPath)
+	if err != nil {
+		return err
+	}
+
+	createManifest := !found
+	manifest, err := manifestPkg.LoadManifest(inManifestPath)
+	if err != nil {
+		return err
+	}
 
 	// Create reader
-	reader := rowsreader.NewCsvReader(inPath, manifest.GetDelimiter(), manifest.GetEnclosure())
+	reader, err := rowsreader.NewCsvReader(inPath, manifest.Delimiter(), manifest.Enclosure())
+	if err != nil {
+		return err
+	}
 
 	// If manifest without defined columns -> store first row/header to manifest "columns" key
 	addColumnsToManifest := !manifest.HasColumns()
 	if addColumnsToManifest {
-		manifest.SetColumns(reader.Header())
+		if header, err := reader.Header(); err == nil {
+			manifest.SetColumns(header)
+		} else {
+			return err
+		}
 	}
 
 	// Read all rows from input table and write to sliced table
 	for reader.Read() {
-		writer.Write(reader.Bytes())
+		if err := writer.Write(reader.Bytes()); err != nil {
+			return err
+		}
 	}
 
 	// Check if no error
 	if reader.Err() != nil {
-		kbc.PanicApplicationErrorf("Error when reading CSV \"%s\": %s", inPath, reader.Err())
+		return fmt.Errorf("error when reading CSV \"%s\": %w", inPath, reader.Err())
 	}
 
 	// Write manifest
-	manifest.WriteTo(outManifestPath)
+	if err := manifest.WriteTo(outManifestPath); err != nil {
+		return err
+	}
 
 	// Log info
-	logResult(logger, writer, relativePath, outPath, createManifest, addColumnsToManifest)
+	return logResult(logger, writer, relativePath, outPath, createManifest, addColumnsToManifest)
 }
 
-func logResult(logger *log.Logger, w *slicedwriter.SlicedWriter, relativePath string, absPath string, createManifest bool, addColumnsToManifest bool) {
+func logResult(logger *log.Logger, w *slicedwriter.SlicedWriter, relativePath string, absPath string, createManifest bool, addColumnsToManifest bool) error {
 	msg := fmt.Sprintf(
-		"Table \"%s\" sliced. Written %d parts, %s rows, total size %s.",
+		"Table \"%s\" sliced, written %d slices, %s rows, total size %s",
 		relativePath,
 		w.Slices(),
 		humanize.Comma(int64(w.AllRows())),
@@ -64,14 +97,22 @@ func logResult(logger *log.Logger, w *slicedwriter.SlicedWriter, relativePath st
 	)
 
 	if w.GzipEnabled() {
-		msg += fmt.Sprintf(" Gzipped size %s.", humanize.IBytes(utils.DirSize(absPath)))
+		if dirSize, err := utils.DirSize(absPath); err == nil {
+			msg += fmt.Sprintf(", gzipped size %s", humanize.IBytes(dirSize))
+		} else {
+			return err
+		}
 	}
 
-	if createManifest {
-		msg += " Manifest created."
-	} else if addColumnsToManifest {
-		msg += " Columns added to manifest."
+	switch {
+	case createManifest:
+		msg += ", manifest created."
+	case addColumnsToManifest:
+		msg += ", columns added to manifest."
+	default:
+		msg += "."
 	}
 
 	logger.Println(msg)
+	return nil
 }

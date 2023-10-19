@@ -5,8 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/keboola/processor-split-table/internal/pkg/utils"
+	"github.com/stretchr/testify/require"
 )
 
 type testData struct {
@@ -25,20 +24,17 @@ func TestConfig(t *testing.T) {
 	for _, testData := range getTestData() {
 		// Write content to file
 		configPath := tempDir + "/config.json"
-		f := utils.OpenFile(configPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
-		utils.WriteStringToFile(f, testData.input, configPath)
-		utils.CloseFile(f, configPath)
+		assert.NoError(t, os.WriteFile(configPath, []byte(testData.input), 0o0644))
 
 		// Test
+		conf, err := LoadConfig(configPath)
 		if testData.expected != nil {
-			conf := LoadConfig(configPath)
+			require.NoError(t, err)
 			assert.Equal(t, testData.expected, conf, testData.comment)
-		}
-
-		if testData.error != "" {
-			assert.PanicsWithError(t, testData.error, func() {
-				LoadConfig(configPath)
-			}, testData.comment)
+		} else if testData.error != "" {
+			if assert.Error(t, err) {
+				assert.Equal(t, testData.error, err.Error())
+			}
 		}
 	}
 }
@@ -48,37 +44,37 @@ func getTestData() []testData {
 		{
 			comment:  "invalid data type",
 			input:    "{\"parameters\": \"abc\"}",
-			error:    "Invalid configuration: key \"parameters\" has invalid type \"string\".",
+			error:    `invalid configuration: key "parameters" has invalid type "string"`,
 			expected: nil,
 		},
 		{
 			comment:  "invalid mode",
 			input:    "{\"parameters\": {\"mode\": \"abc\"}}",
-			error:    "Invalid configuration: unexpected value \"abc\" for \"mode\". Use \"rows\", \"bytes\" or \"slices\".",
+			error:    `invalid configuration: unexpected value "abc" for "mode", use "rows", "bytes" or "slices"`,
 			expected: nil,
 		},
 		{
 			comment:  "min value bytesPerSlice",
 			input:    "{\"parameters\": {\"mode\": \"bytes\", \"bytesPerSlice\": 0}}",
-			error:    "Invalid configuration: key=\"parameters.bytesPerSlice\", value=\"0\" failed on the \"min\" validation.",
+			error:    `invalid configuration: key="parameters.bytesPerSlice", value="0" failed on the "min" validation`,
 			expected: nil,
 		},
 		{
 			comment:  "min value rowsPerSlice",
 			input:    "{\"parameters\": {\"mode\": \"bytes\", \"rowsPerSlice\": 0}}",
-			error:    "Invalid configuration: key=\"parameters.rowsPerSlice\", value=\"0\" failed on the \"min\" validation.",
+			error:    `invalid configuration: key="parameters.rowsPerSlice", value="0" failed on the "min" validation`,
 			expected: nil,
 		},
 		{
 			comment:  "min value gzipLevel",
 			input:    "{\"parameters\": {\"mode\": \"bytes\", \"gzipLevel\": 0}}",
-			error:    "Invalid configuration: key=\"parameters.gzipLevel\", value=\"0\" failed on the \"min\" validation.",
+			error:    `invalid configuration: key="parameters.gzipLevel", value="0" failed on the "min" validation`,
 			expected: nil,
 		},
 		{
 			comment:  "max value gzipLevel",
 			input:    "{\"parameters\": {\"mode\": \"bytes\", \"gzipLevel\": 10}}",
-			error:    "Invalid configuration: key=\"parameters.gzipLevel\", value=\"10\" failed on the \"max\" validation.",
+			error:    `invalid configuration: key="parameters.gzipLevel", value="10" failed on the "max" validation`,
 			expected: nil,
 		},
 		{

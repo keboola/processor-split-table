@@ -2,7 +2,8 @@ package columnsparser
 
 import (
 	"bytes"
-	"fmt"
+
+	"github.com/keboola/processor-split-table/internal/pkg/kbc"
 )
 
 type Parser struct {
@@ -43,7 +44,7 @@ func (p *Parser) Parse(row []byte) ([]string, error) {
 
 	// Check if enclosure is ended
 	if p.insideEnclosure {
-		return nil, fmt.Errorf("reached end of the row, but enclosure is not ended")
+		return nil, kbc.UserErrorf("reached end of the row, but enclosure is not ended")
 	}
 
 	return p.columns, nil
@@ -65,7 +66,7 @@ func (p *Parser) processChar(char byte) error {
 		}
 
 		if !p.insideEnclosure && len(p.current) > 0 {
-			return fmt.Errorf("unexpected token \"%s\" before enclosure at position %d", p.current, p.index+1)
+			return kbc.UserErrorf("unexpected token \"%s\" before enclosure at position %d", p.current, p.index+1)
 		}
 
 		// Invert state
