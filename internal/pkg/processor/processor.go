@@ -1,3 +1,4 @@
+// Package processor provides split processor implementation.
 package processor
 
 import (
@@ -13,59 +14,61 @@ import (
 	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
-// Processor processes files found by Finder.
-type Processor struct {
-	logger    log.Logger
-	config    *config.Config
-	inputDir  string
-	outputDir string
-	files     []*finder.FileNode
-}
+func Run(logger log.Logger) error {
+	inputDir := kbc.GetInputDir()
+	outputDir := kbc.GetOutputDir()
 
-func NewProcessor(logger log.Logger, conf *config.Config, inputDir string, outputDir string, files []*finder.FileNode) *Processor {
-	return &Processor{logger: logger, config: conf, inputDir: inputDir, outputDir: outputDir, files: files}
-}
-
-func (p *Processor) Run() error {
-	// Create in/out dirs if not exits
-	if err := utils.Mkdir(p.inputDir); err != nil {
+	// Load config
+	cfg, err := config.LoadConfig(kbc.GetDataDir() + "/config.json")
+	if err != nil {
 		return err
 	}
-	if err := utils.Mkdir(p.outputDir); err != nil {
+
+	// Find files
+	files, err := finder.FindFilesRecursive(inputDir)
+	if err != nil {
+		return err
+	}
+
+	// Create in/out dirs if not exits
+	if err := utils.Mkdir(inputDir); err != nil {
+		return err
+	}
+	if err := utils.Mkdir(outputDir); err != nil {
 		return err
 	}
 
 	// Log settings
-	switch p.config.Parameters.Mode {
+	switch cfg.Parameters.Mode {
 	case config.ModeBytes:
-		p.logger.Infof("Configured max %s per slice.", humanize.IBytes(p.config.Parameters.BytesPerSlice))
+		logger.Infof("Configured max %s per slice.", humanize.IBytes(cfg.Parameters.BytesPerSlice))
 	case config.ModeRows:
-		p.logger.Infof("Configured max %s rows per slice.", humanize.Comma(int64(p.config.Parameters.RowsPerSlice)))
+		logger.Infof("Configured max %s rows per slice.", humanize.Comma(int64(cfg.Parameters.RowsPerSlice)))
 	case config.ModeSlices:
-		p.logger.Infof(
+		logger.Infof(
 			"Configured number of slices is %d, min %s per slice.",
-			p.config.Parameters.NumberOfSlices,
-			humanize.IBytes(p.config.Parameters.MinBytesPerSlice),
+			cfg.Parameters.NumberOfSlices,
+			humanize.IBytes(cfg.Parameters.MinBytesPerSlice),
 		)
 	default:
-		return kbc.UserErrorf("unexpected mode \"%s\".", p.config.Parameters.Mode)
+		return kbc.UserErrorf("unexpected mode \"%s\".", cfg.Parameters.Mode)
 	}
 
-	if p.config.Parameters.Gzip {
-		p.logger.Infof("Gzip enabled, compression level = %d.", p.config.Parameters.GzipLevel)
+	if cfg.Parameters.Gzip {
+		logger.Infof("Gzip enabled, compression level = %d.", cfg.Parameters.GzipLevel)
 	}
 
 	// Process all found files
-	for _, file := range p.files {
-		inPath := p.inputDir + "/" + file.RelativePath
-		outPath := p.outputDir + "/" + file.RelativePath
-		inManifestPath := p.inputDir + "/" + file.ManifestPath
-		outManifestPath := p.outputDir + "/" + file.ManifestPath
+	for _, file := range files {
+		inPath := inputDir + "/" + file.RelativePath
+		outPath := outputDir + "/" + file.RelativePath
+		inManifestPath := inputDir + "/" + file.ManifestPath
+		outManifestPath := outputDir + "/" + file.ManifestPath
 
 		switch file.FileType {
 		case finder.CsvTableSingle:
 			// Single file CSV tables -> split
-			if err := slicer.SliceCsv(p.logger, p.config, file.RelativePath, inPath, inManifestPath, outPath, outManifestPath); err != nil {
+			if err := slicer.SliceCsv(logger, cfg, file.RelativePath, inPath, inManifestPath, outPath, outManifestPath); err != nil {
 				return err
 			}
 		case finder.Directory:
@@ -74,7 +77,7 @@ func (p *Processor) Run() error {
 			}
 		case finder.CsvTableSliced:
 			// Already sliced tables are copied from in -> out
-			p.logger.Infof("Copying already sliced table \"%s\".", file.RelativePath)
+			logger.Infof("Copying already sliced table \"%s\".", file.RelativePath)
 			if err := utils.CopyRecursive(inPath, outPath); err != nil {
 				return err
 			}
@@ -88,7 +91,7 @@ func (p *Processor) Run() error {
 
 		case finder.File:
 			// Files are copied from in -> out
-			p.logger.Infof("Copying \"%s\".", file.RelativePath)
+			logger.Infof("Copying \"%s\".", file.RelativePath)
 			if err := utils.CopyRecursive(inPath, outPath); err != nil {
 				return err
 			}

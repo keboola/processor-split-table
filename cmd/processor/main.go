@@ -10,8 +10,6 @@ import (
 	"github.com/keboola/processor-split-table/internal/pkg/kbc"
 	"github.com/keboola/processor-split-table/internal/pkg/log"
 	"github.com/keboola/processor-split-table/internal/pkg/processor"
-	"github.com/keboola/processor-split-table/internal/pkg/processor/config"
-	"github.com/keboola/processor-split-table/internal/pkg/processor/finder"
 )
 
 func main() {
@@ -31,33 +29,9 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	if err := run(logger); err != nil {
+	if err := processor.Run(logger); err != nil {
 		exitWithError(logger, err)
 	}
-}
-
-func run(logger log.Logger) error {
-	inputDir := kbc.GetInputDir()
-	outputDir := kbc.GetOutputDir()
-
-	// Load config
-	conf, err := config.LoadConfig(kbc.GetDataDir() + "/config.json")
-	if err != nil {
-		return err
-	}
-
-	// Find files
-	files, err := finder.FindFilesRecursive(inputDir)
-	if err != nil {
-		return err
-	}
-
-	// Process files
-	if err := processor.NewProcessor(logger, conf, inputDir, outputDir, files).Run(); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func exitWithError(logger log.Logger, err any) {

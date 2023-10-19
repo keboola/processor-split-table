@@ -1,3 +1,4 @@
+// Package finder provides detection of files to process by the processor.
 package finder
 
 import (
