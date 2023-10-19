@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/keboola/processor-split-table/internal/pkg/processor/config"
+	"github.com/keboola/processor-split-table/internal/pkg/slicer/config"
 )
 
 // SlicedWriter writes CSV to a sliced table defined by dirPath.
@@ -24,11 +24,11 @@ type SlicedWriter struct {
 	allBytes      uint64
 }
 
-func NewSlicedWriterFromConf(conf *config.Config, inFileSize uint64, outPath string) (*SlicedWriter, error) {
-	mode := conf.Parameters.Mode
-	bytesPerSlice := conf.Parameters.BytesPerSlice
-	rowsPerSlice := conf.Parameters.RowsPerSlice
-	maxSlices := conf.Parameters.NumberOfSlices
+func NewSlicedWriterFromConf(cfg config.Config, inFileSize uint64, outPath string) (*SlicedWriter, error) {
+	mode := cfg.Mode
+	bytesPerSlice := cfg.BytesPerSlice
+	rowsPerSlice := cfg.RowsPerSlice
+	maxSlices := cfg.NumberOfSlices
 
 	// Fixed number of slices -> calculate bytesPerSlice
 	if mode == config.ModeSlices {
@@ -37,14 +37,14 @@ func NewSlicedWriterFromConf(conf *config.Config, inFileSize uint64, outPath str
 		bytesPerSlice = uint64(math.Ceil(fileSize / float64(maxSlices)))
 
 		// Too small slices (a few kilobytes) can slow down upload -> check min size
-		if bytesPerSlice < conf.Parameters.MinBytesPerSlice {
-			bytesPerSlice = conf.Parameters.MinBytesPerSlice
+		if bytesPerSlice < cfg.MinBytesPerSlice {
+			bytesPerSlice = cfg.MinBytesPerSlice
 		}
 	} else {
 		maxSlices = 0 // disabled
 	}
 
-	return NewSlicedWriter(mode, bytesPerSlice, rowsPerSlice, maxSlices, conf.Parameters.Gzip, conf.Parameters.GzipLevel, outPath)
+	return NewSlicedWriter(mode, bytesPerSlice, rowsPerSlice, maxSlices, cfg.Gzip, cfg.GzipLevel, outPath)
 }
 
 func NewSlicedWriter(mode config.Mode, bytesPerSlice uint64, rowsPerSlice uint64, maxSlices uint32, gzipEnabled bool, gzipLevel int, dirPath string) (*SlicedWriter, error) {

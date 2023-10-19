@@ -6,6 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	slicerConfig "github.com/keboola/processor-split-table/internal/pkg/slicer/config"
 )
 
 type testData struct {
@@ -82,8 +84,8 @@ func getTestData() []testData {
 			input:   "{}",
 			error:   "",
 			expected: &Config{
-				Parameters: Parameters{
-					Mode:             ModeBytes,
+				Parameters: slicerConfig.Config{
+					Mode:             slicerConfig.ModeBytes,
 					BytesPerSlice:    524_288_000,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   60,
@@ -98,8 +100,8 @@ func getTestData() []testData {
 			input:   "{\"parameters\": {}}",
 			error:   "",
 			expected: &Config{
-				Parameters: Parameters{
-					Mode:             ModeBytes,
+				Parameters: slicerConfig.Config{
+					Mode:             slicerConfig.ModeBytes,
 					BytesPerSlice:    524_288_000,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   60,
@@ -114,8 +116,8 @@ func getTestData() []testData {
 			input:   "{\"parameters\": {\"gzip\": true, \"gzipLevel\": 5}}",
 			error:   "",
 			expected: &Config{
-				Parameters: Parameters{
-					Mode:             ModeBytes,
+				Parameters: slicerConfig.Config{
+					Mode:             slicerConfig.ModeBytes,
 					BytesPerSlice:    524_288_000,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   60,
@@ -130,8 +132,8 @@ func getTestData() []testData {
 			input:   "{\"parameters\": {\"gzip\": false}}",
 			error:   "",
 			expected: &Config{
-				Parameters: Parameters{
-					Mode:             ModeBytes,
+				Parameters: slicerConfig.Config{
+					Mode:             slicerConfig.ModeBytes,
 					BytesPerSlice:    524_288_000,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   60,
@@ -146,8 +148,8 @@ func getTestData() []testData {
 			input:   "{\"parameters\": {\"mode\": \"rows\", \"rowsPerSlice\": 123}}",
 			error:   "",
 			expected: &Config{
-				Parameters: Parameters{
-					Mode:             ModeRows,
+				Parameters: slicerConfig.Config{
+					Mode:             slicerConfig.ModeRows,
 					BytesPerSlice:    524_288_000,
 					RowsPerSlice:     123,
 					NumberOfSlices:   60,
@@ -162,8 +164,8 @@ func getTestData() []testData {
 			input:   "{\"parameters\": {\"mode\": \"bytes\", \"bytesPerSlice\": 123}}",
 			error:   "",
 			expected: &Config{
-				Parameters: Parameters{
-					Mode:             ModeBytes,
+				Parameters: slicerConfig.Config{
+					Mode:             slicerConfig.ModeBytes,
 					BytesPerSlice:    123,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   60,
@@ -178,8 +180,8 @@ func getTestData() []testData {
 			input:   "{\"parameters\": {\"mode\": \"slices\", \"numberOfSlices\": 123}}",
 			error:   "",
 			expected: &Config{
-				Parameters: Parameters{
-					Mode:             ModeSlices,
+				Parameters: slicerConfig.Config{
+					Mode:             slicerConfig.ModeSlices,
 					BytesPerSlice:    524_288_000,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   123,
@@ -194,8 +196,8 @@ func getTestData() []testData {
 			input:   "{\"parameters\": {\"mode\": \"slices\", \"minBytesPerSlice\": 123}}",
 			error:   "",
 			expected: &Config{
-				Parameters: Parameters{
-					Mode:             ModeSlices,
+				Parameters: slicerConfig.Config{
+					Mode:             slicerConfig.ModeSlices,
 					BytesPerSlice:    524_288_000,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   60,

@@ -8,12 +8,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/keboola/processor-split-table/internal/pkg/processor/config"
+	"github.com/keboola/processor-split-table/internal/pkg/slicer/config"
 	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
 type testData struct {
-	conf         *config.Config
+	config       config.Config
 	rows         []string
 	expectedErr  error
 	expectedPath string
@@ -26,15 +26,13 @@ func TestNewSlicedWriter(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Config
-	conf := &config.Config{
-		Parameters: config.Parameters{
-			Mode:          config.ModeBytes,
-			BytesPerSlice: 123,
-		},
+	cfg := config.Config{
+		Mode:          config.ModeBytes,
+		BytesPerSlice: 123,
 	}
 
 	// Create writer
-	w, err := NewSlicedWriterFromConf(conf, 1000, tempDir)
+	w, err := NewSlicedWriterFromConf(cfg, 1000, tempDir)
 	require.NoError(t, err)
 
 	// Assert
@@ -56,15 +54,12 @@ func TestCreateNextSlice(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Config
-	conf := &config.Config{
-		Parameters: config.Parameters{
-			Mode:          config.ModeBytes,
-			BytesPerSlice: 123,
-		},
+	cfg := config.Config{
+		Mode:          config.ModeBytes,
+		BytesPerSlice: 123,
 	}
-
 	// Create writer
-	w, err := NewSlicedWriterFromConf(conf, 1000, tempDir)
+	w, err := NewSlicedWriterFromConf(cfg, 1000, tempDir)
 	require.NoError(t, err)
 
 	require.NoError(t, w.createNextSlice())
@@ -88,15 +83,13 @@ func TestIsSpaceForNextRowBytes(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Config
-	conf := &config.Config{
-		Parameters: config.Parameters{
-			Mode:          config.ModeBytes,
-			BytesPerSlice: 123, // <<<<<<
-		},
+	cfg := config.Config{
+		Mode:          config.ModeBytes,
+		BytesPerSlice: 123, // <<<<<<
 	}
 
 	// Create writer
-	w, err := NewSlicedWriterFromConf(conf, 1000, tempDir)
+	w, err := NewSlicedWriterFromConf(cfg, 1000, tempDir)
 	require.NoError(t, err)
 	w.allRows = 10
 	w.allBytes = 200
@@ -117,15 +110,13 @@ func TestIsSpaceForNextRowRows(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Config
-	conf := &config.Config{
-		Parameters: config.Parameters{
-			Mode:         config.ModeRows,
-			RowsPerSlice: 10,
-		},
+	cfg := config.Config{
+		Mode:         config.ModeRows,
+		RowsPerSlice: 10,
 	}
 
 	// Create writer
-	w, err := NewSlicedWriterFromConf(conf, 1000, tempDir)
+	w, err := NewSlicedWriterFromConf(cfg, 1000, tempDir)
 	require.NoError(t, err)
 	w.allRows = 10
 	w.allBytes = 200
@@ -147,17 +138,15 @@ func TestBytesMode(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Config
-	conf := &config.Config{
-		Parameters: config.Parameters{
-			Mode:           config.ModeBytes,
-			BytesPerSlice:  40,
-			NumberOfSlices: 2, // no effect
-			RowsPerSlice:   2, // no effect
-		},
+	cfg := config.Config{
+		Mode:           config.ModeBytes,
+		BytesPerSlice:  40,
+		NumberOfSlices: 2, // no effect
+		RowsPerSlice:   2, // no effect
 	}
 
 	// Create writer
-	w, err := NewSlicedWriterFromConf(conf, 1000, tempDir)
+	w, err := NewSlicedWriterFromConf(cfg, 1000, tempDir)
 	require.NoError(t, err)
 
 	// 1 slice
@@ -186,17 +175,15 @@ func TestRowsMode(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Config
-	conf := &config.Config{
-		Parameters: config.Parameters{
-			Mode:           config.ModeRows,
-			RowsPerSlice:   3,
-			BytesPerSlice:  5, // no effect
-			NumberOfSlices: 2, // no effect
-		},
+	cfg := config.Config{
+		Mode:           config.ModeRows,
+		RowsPerSlice:   3,
+		BytesPerSlice:  5, // no effect
+		NumberOfSlices: 2, // no effect
 	}
 
 	// Create writer
-	w, err := NewSlicedWriterFromConf(conf, 1000, tempDir)
+	w, err := NewSlicedWriterFromConf(cfg, 1000, tempDir)
 	require.NoError(t, err)
 
 	// 1 slice
@@ -225,18 +212,16 @@ func TestSlicesMode(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Config
-	conf := &config.Config{
-		Parameters: config.Parameters{
-			Mode:             config.ModeSlices,
-			NumberOfSlices:   3,
-			MinBytesPerSlice: 1,
-			BytesPerSlice:    1, // no effect
-			RowsPerSlice:     1, // no effect
-		},
+	cfg := config.Config{
+		Mode:             config.ModeSlices,
+		NumberOfSlices:   3,
+		MinBytesPerSlice: 1,
+		BytesPerSlice:    1, // no effect
+		RowsPerSlice:     1, // no effect
 	}
 
 	// Create writer
-	w, err := NewSlicedWriterFromConf(conf, 7*12, tempDir)
+	w, err := NewSlicedWriterFromConf(cfg, 7*12, tempDir)
 	require.NoError(t, err)
 	assert.Equal(t, uint32(3), w.maxSlices)
 	assert.Equal(t, uint64(28), w.bytesPerSlice) // 7 row * 12 bytes / 3 slices = 28 bytes per slice
@@ -268,7 +253,7 @@ func TestWriteCsv(t *testing.T) {
 
 	for _, testData := range getReadCsvTestData() {
 		tempDir := t.TempDir()
-		w, err := NewSlicedWriterFromConf(testData.conf, 1000, tempDir)
+		w, err := NewSlicedWriterFromConf(testData.config, 1000, tempDir)
 		require.NoError(t, err)
 		for _, row := range testData.rows {
 			assert.NoError(t, w.Write([]byte(row)))
@@ -285,13 +270,13 @@ func getReadCsvTestData() []testData {
 		{
 			expectedPath: "empty",
 			expectedErr:  nil,
-			conf:         &config.Config{Parameters: config.Parameters{Mode: config.ModeBytes, BytesPerSlice: 1000}},
+			config:       config.Config{Mode: config.ModeBytes, BytesPerSlice: 1000},
 			rows:         nil,
 		},
 		{
 			expectedPath: "empty_with_new_line",
 			expectedErr:  nil,
-			conf:         &config.Config{Parameters: config.Parameters{Mode: config.ModeBytes, BytesPerSlice: 1000}},
+			config:       config.Config{Mode: config.ModeBytes, BytesPerSlice: 1000},
 			rows: []string{
 				"\n",
 			},
@@ -299,7 +284,7 @@ func getReadCsvTestData() []testData {
 		{
 			expectedPath: "one_row",
 			expectedErr:  nil,
-			conf:         &config.Config{Parameters: config.Parameters{Mode: config.ModeBytes, BytesPerSlice: 1000}},
+			config:       config.Config{Mode: config.ModeBytes, BytesPerSlice: 1000},
 			rows: []string{
 				"\"abc\",\"def\"\n",
 			},
@@ -307,7 +292,7 @@ func getReadCsvTestData() []testData {
 		{
 			expectedPath: "two_rows",
 			expectedErr:  nil,
-			conf:         &config.Config{Parameters: config.Parameters{Mode: config.ModeBytes, BytesPerSlice: 1000}},
+			config:       config.Config{Mode: config.ModeBytes, BytesPerSlice: 1000},
 			rows: []string{
 				"\"abc\",\"def\"\n",
 				"\"123\",\"456\"\n",
@@ -316,7 +301,7 @@ func getReadCsvTestData() []testData {
 		{
 			expectedPath: "escaping",
 			expectedErr:  nil,
-			conf:         &config.Config{Parameters: config.Parameters{Mode: config.ModeBytes, BytesPerSlice: 1000}},
+			config:       config.Config{Mode: config.ModeBytes, BytesPerSlice: 1000},
 			rows: []string{
 				"\"col1\",\"col2\"\n",
 				"\"line with enclosure\",\"second column\"\n",
@@ -331,7 +316,7 @@ func getReadCsvTestData() []testData {
 		{
 			expectedPath: "multiple_parts_bytes_mode",
 			expectedErr:  nil,
-			conf:         &config.Config{Parameters: config.Parameters{Mode: config.ModeBytes, BytesPerSlice: 40}},
+			config:       config.Config{Mode: config.ModeBytes, BytesPerSlice: 40},
 			rows: []string{
 				"\"1bc\",\"def\"\n",
 				"\"2bc\",\"def\"\n",
@@ -345,7 +330,7 @@ func getReadCsvTestData() []testData {
 		{
 			expectedPath: "multiple_parts_rows_mode",
 			expectedErr:  nil,
-			conf:         &config.Config{Parameters: config.Parameters{Mode: config.ModeRows, RowsPerSlice: 3}},
+			config:       config.Config{Mode: config.ModeRows, RowsPerSlice: 3},
 			rows: []string{
 				"\"1bc\",\"def\"\n",
 				"\"2bc\",\"def\"\n",
