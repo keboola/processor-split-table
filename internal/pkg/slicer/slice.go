@@ -5,9 +5,9 @@ import (
 
 	"github.com/dustin/go-humanize"
 
-	"github.com/keboola/processor-split-table/internal/pkg/config"
 	"github.com/keboola/processor-split-table/internal/pkg/log"
 	manifestPkg "github.com/keboola/processor-split-table/internal/pkg/manifest"
+	"github.com/keboola/processor-split-table/internal/pkg/processor/config"
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/rowsreader"
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/slicedwriter"
 	"github.com/keboola/processor-split-table/internal/pkg/utils"

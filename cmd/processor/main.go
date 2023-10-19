@@ -7,11 +7,11 @@ import (
 	"runtime/debug"
 	"runtime/pprof"
 
-	"github.com/keboola/processor-split-table/internal/pkg/config"
 	"github.com/keboola/processor-split-table/internal/pkg/finder"
 	"github.com/keboola/processor-split-table/internal/pkg/kbc"
 	"github.com/keboola/processor-split-table/internal/pkg/log"
 	"github.com/keboola/processor-split-table/internal/pkg/processor"
+	"github.com/keboola/processor-split-table/internal/pkg/processor/config"
 )
 
 func main() {
