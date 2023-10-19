@@ -32,11 +32,11 @@ func TestNewSlicedWriter(t *testing.T) {
 	}
 
 	// Create writer
-	w, err := NewSlicedWriterFromConf(cfg, 1000, tempDir)
+	w, err := New(cfg, 1000, tempDir)
 	require.NoError(t, err)
 
 	// Assert
-	assert.Equal(t, tempDir, w.dirPath)
+	assert.Equal(t, tempDir, w.outPath)
 	assert.Equal(t, uint32(1), w.sliceNumber)          // <<<<<<
 	assert.Equal(t, tempDir+"/part0001", w.slice.path) // <<<<<<
 	assert.NotNil(t, w.slice.file)
@@ -59,13 +59,13 @@ func TestCreateNextSlice(t *testing.T) {
 		BytesPerSlice: 123,
 	}
 	// Create writer
-	w, err := NewSlicedWriterFromConf(cfg, 1000, tempDir)
+	w, err := New(cfg, 1000, tempDir)
 	require.NoError(t, err)
 
 	require.NoError(t, w.createNextSlice())
 
 	// Assert
-	assert.Equal(t, tempDir, w.dirPath)
+	assert.Equal(t, tempDir, w.outPath)
 	assert.Equal(t, uint32(2), w.sliceNumber)          // <<<<<<
 	assert.Equal(t, tempDir+"/part0002", w.slice.path) // <<<<<<
 	assert.NotNil(t, w.slice.file)
@@ -89,7 +89,7 @@ func TestIsSpaceForNextRowBytes(t *testing.T) {
 	}
 
 	// Create writer
-	w, err := NewSlicedWriterFromConf(cfg, 1000, tempDir)
+	w, err := New(cfg, 1000, tempDir)
 	require.NoError(t, err)
 	w.allRows = 10
 	w.allBytes = 200
@@ -116,7 +116,7 @@ func TestIsSpaceForNextRowRows(t *testing.T) {
 	}
 
 	// Create writer
-	w, err := NewSlicedWriterFromConf(cfg, 1000, tempDir)
+	w, err := New(cfg, 1000, tempDir)
 	require.NoError(t, err)
 	w.allRows = 10
 	w.allBytes = 200
@@ -126,7 +126,7 @@ func TestIsSpaceForNextRowRows(t *testing.T) {
 	// Assert
 	assert.True(t, w.slice.IsSpaceForNextRow(123))
 	assert.True(t, w.slice.IsSpaceForNextRow(123))
-	w.slice.maxRows = 5 // <<<<<< no row left
+	w.slice.config.RowsPerSlice = 5 // <<<<<< no row left
 	assert.False(t, w.slice.IsSpaceForNextRow(123))
 	assert.False(t, w.slice.IsSpaceForNextRow(123))
 }
@@ -146,7 +146,7 @@ func TestBytesMode(t *testing.T) {
 	}
 
 	// Create writer
-	w, err := NewSlicedWriterFromConf(cfg, 1000, tempDir)
+	w, err := New(cfg, 1000, tempDir)
 	require.NoError(t, err)
 
 	// 1 slice
@@ -183,7 +183,7 @@ func TestRowsMode(t *testing.T) {
 	}
 
 	// Create writer
-	w, err := NewSlicedWriterFromConf(cfg, 1000, tempDir)
+	w, err := New(cfg, 1000, tempDir)
 	require.NoError(t, err)
 
 	// 1 slice
@@ -221,10 +221,10 @@ func TestSlicesMode(t *testing.T) {
 	}
 
 	// Create writer
-	w, err := NewSlicedWriterFromConf(cfg, 7*12, tempDir)
+	w, err := New(cfg, 7*12, tempDir)
 	require.NoError(t, err)
-	assert.Equal(t, uint32(3), w.maxSlices)
-	assert.Equal(t, uint64(28), w.bytesPerSlice) // 7 row * 12 bytes / 3 slices = 28 bytes per slice
+	assert.Equal(t, uint32(3), w.config.NumberOfSlices)
+	assert.Equal(t, uint64(28), w.config.BytesPerSlice) // 7 row * 12 bytes / 3 slices = 28 bytes per slice
 
 	// 1 slice
 	assert.NoError(t, w.Write([]byte("\"1bc\",\"def\"\n"))) // 12 bytes
@@ -253,7 +253,7 @@ func TestWriteCsv(t *testing.T) {
 
 	for _, testData := range getReadCsvTestData() {
 		tempDir := t.TempDir()
-		w, err := NewSlicedWriterFromConf(testData.config, 1000, tempDir)
+		w, err := New(testData.config, 1000, tempDir)
 		require.NoError(t, err)
 		for _, row := range testData.rows {
 			assert.NoError(t, w.Write([]byte(row)))

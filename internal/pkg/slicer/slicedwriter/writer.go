@@ -7,60 +7,34 @@ import (
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/config"
 )
 
-// SlicedWriter writes CSV to a sliced table defined by dirPath.
-// Each part is one file in dirPath.
+// SlicedWriter writes CSV to a sliced table defined by outPath.
+// Each part is one file in outPath.
 // When maxRows/maxBytes is reached -> a new file/part is created.
 type SlicedWriter struct {
-	mode          config.Mode
-	bytesPerSlice uint64
-	rowsPerSlice  uint64
-	maxSlices     uint32
-	gzipEnabled   bool
-	gzipLevel     int
-	dirPath       string
-	sliceNumber   uint32
-	slice         *slice
-	allRows       uint64
-	allBytes      uint64
+	config      config.Config
+	outPath     string
+	sliceNumber uint32
+	slice       *slice
+	allRows     uint64
+	allBytes    uint64
 }
 
-func NewSlicedWriterFromConf(cfg config.Config, inFileSize uint64, outPath string) (*SlicedWriter, error) {
-	mode := cfg.Mode
-	bytesPerSlice := cfg.BytesPerSlice
-	rowsPerSlice := cfg.RowsPerSlice
-	maxSlices := cfg.NumberOfSlices
-
-	// Fixed number of slices -> calculate bytesPerSlice
-	if mode == config.ModeSlices {
-		mode = config.ModeBytes
+func New(cfg config.Config, inFileSize uint64, outPath string) (*SlicedWriter, error) {
+	// Convert NumberOfSlices to BytesPerSlice
+	if cfg.Mode == config.ModeSlices {
+		cfg.Mode = config.ModeBytes
 		fileSize := float64(inFileSize)
-		bytesPerSlice = uint64(math.Ceil(fileSize / float64(maxSlices)))
+		cfg.BytesPerSlice = uint64(math.Ceil(fileSize / float64(cfg.NumberOfSlices)))
 
 		// Too small slices (a few kilobytes) can slow down upload -> check min size
-		if bytesPerSlice < cfg.MinBytesPerSlice {
-			bytesPerSlice = cfg.MinBytesPerSlice
+		if cfg.BytesPerSlice < cfg.MinBytesPerSlice {
+			cfg.BytesPerSlice = cfg.MinBytesPerSlice
 		}
 	} else {
-		maxSlices = 0 // disabled
+		cfg.NumberOfSlices = 0 // disabled
 	}
 
-	return NewSlicedWriter(mode, bytesPerSlice, rowsPerSlice, maxSlices, cfg.Gzip, cfg.GzipLevel, outPath)
-}
-
-func NewSlicedWriter(mode config.Mode, bytesPerSlice uint64, rowsPerSlice uint64, maxSlices uint32, gzipEnabled bool, gzipLevel int, dirPath string) (*SlicedWriter, error) {
-	w := &SlicedWriter{
-		mode,
-		bytesPerSlice,
-		rowsPerSlice,
-		maxSlices,
-		gzipEnabled,
-		gzipLevel,
-		dirPath,
-		0,
-		nil,
-		0,
-		0,
-	}
+	w := &SlicedWriter{config: cfg, outPath: outPath}
 
 	// Open first slice
 	if err := w.createNextSlice(); err != nil {
@@ -93,7 +67,7 @@ func (w *SlicedWriter) Close() error {
 
 func (w *SlicedWriter) IsSpaceForNextRowInSlice(rowLength uint64) bool {
 	// Last slice, do not overflow
-	if w.maxSlices > 0 && w.maxSlices == w.sliceNumber {
+	if w.config.NumberOfSlices > 0 && w.config.NumberOfSlices == w.sliceNumber {
 		return true
 	}
 
@@ -101,7 +75,7 @@ func (w *SlicedWriter) IsSpaceForNextRowInSlice(rowLength uint64) bool {
 }
 
 func (w *SlicedWriter) GzipEnabled() bool {
-	return w.gzipEnabled
+	return w.config.Gzip
 }
 
 func (w *SlicedWriter) Slices() uint32 {
@@ -124,9 +98,9 @@ func (w *SlicedWriter) createNextSlice() error {
 	}
 
 	w.sliceNumber++
-	path := getSlicePath(w.dirPath, w.sliceNumber, w.gzipEnabled)
+	path := getSlicePath(w.outPath, w.sliceNumber, w.config.Gzip)
 
-	s, err := newSlice(w.mode, w.bytesPerSlice, w.rowsPerSlice, w.gzipEnabled, w.gzipLevel, path)
+	s, err := newSlice(w.config, path)
 	if err != nil {
 		return err
 	}

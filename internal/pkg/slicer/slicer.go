@@ -28,7 +28,7 @@ func SliceCsv(logger log.Logger, conf config.Config, relativePath string, inPath
 	}
 
 	// Create writer
-	writer, err := slicedwriter.NewSlicedWriterFromConf(conf, fileSize, outPath)
+	writer, err := slicedwriter.New(conf, fileSize, outPath)
 	if err != nil {
 		return err
 	}
