@@ -8,10 +8,12 @@ Copying "files/sub/dir/foo6.csv".
 Copying "tables/sub/dir/foo7.bar".
 Copying "tables/sub/dir/foo8.csv".
 Slicing table "tables/table1.csv".
-Table "tables/table1.csv" sliced, written 1 slices, 1 rows, total size 8 B, manifest created.
+Table "tables/table1.csv" sliced: in/out: 1 / 1 slices, 22B / 8B bytes, 1 rows, manifest created.
 Slicing table "tables/table2.csv".
-Table "tables/table2.csv" sliced, written 1 slices, 1 rows, total size 8 B, columns added to manifest.
-Copying already sliced table "tables/table3.csv".
-Copying already sliced table "tables/table4.csv".
+Table "tables/table2.csv" sliced: in/out: 1 / 1 slices, 22B / 8B bytes, 1 rows, manifest updated.
+Slicing table "tables/table3.csv".
+Table "tables/table3.csv" sliced: in/out: 1 / 1 slices, 16B / 16B bytes, 2 rows, manifest unaffected.
+Slicing table "tables/table4.csv".
+Table "tables/table4.csv" sliced: in/out: 2 / 1 slices, 16B / 16B bytes, 2 rows, manifest unaffected.
 Slicing table "tables/table5.csv".
-Table "tables/table5.csv" sliced, written 1 slices, 3 rows, total size 24 B.
+Table "tables/table5.csv" sliced: in/out: 1 / 1 slices, 24B / 24B bytes, 3 rows, manifest unaffected.
