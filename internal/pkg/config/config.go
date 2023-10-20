@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"reflect"
 	"strings"
@@ -54,7 +53,7 @@ func (m *Mode) UnmarshalText(b []byte) error {
 	return nil
 }
 
-func LoadConfig(configPath string) (*Config, error) {
+func LoadConfig(configPath string) (cfg *Config, err error) {
 	// Open config
 	f, err := os.OpenFile(configPath, os.O_RDONLY, 0o640)
 	if err != nil {
@@ -65,8 +64,8 @@ func LoadConfig(configPath string) (*Config, error) {
 		}
 	}
 	defer func() {
-		if err := f.Close(); err != nil {
-			log.Println(fmt.Errorf(`cannot close file "%s": %w`, configPath, err))
+		if closeErr := f.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf(`cannot close file "%s": %w`, configPath, err)
 		}
 	}()
 

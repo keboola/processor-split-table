@@ -2,19 +2,19 @@ package csv
 
 import (
 	"fmt"
-	"log"
 
-	humanize "github.com/dustin/go-humanize"
+	"github.com/dustin/go-humanize"
 
 	"github.com/keboola/processor-split-table/internal/pkg/config"
 	manifestPkg "github.com/keboola/processor-split-table/internal/pkg/csv/manifest"
 	"github.com/keboola/processor-split-table/internal/pkg/csv/rowsreader"
 	"github.com/keboola/processor-split-table/internal/pkg/csv/slicedwriter"
+	"github.com/keboola/processor-split-table/internal/pkg/log"
 	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
-func SliceCsv(logger *log.Logger, conf *config.Config, relativePath string, inPath string, inManifestPath string, outPath string, outManifestPath string) (err error) {
-	logger.Printf("Slicing table \"%s\".\n", relativePath)
+func SliceCsv(logger log.Logger, conf *config.Config, relativePath string, inPath string, inManifestPath string, outPath string, outManifestPath string) (err error) {
+	logger.Infof("Slicing table \"%s\".", relativePath)
 
 	// Create target dir
 	if err := utils.Mkdir(outPath); err != nil {
@@ -87,7 +87,7 @@ func SliceCsv(logger *log.Logger, conf *config.Config, relativePath string, inPa
 	return logResult(logger, writer, relativePath, outPath, createManifest, addColumnsToManifest)
 }
 
-func logResult(logger *log.Logger, w *slicedwriter.SlicedWriter, relativePath string, absPath string, createManifest bool, addColumnsToManifest bool) error {
+func logResult(logger log.Logger, w *slicedwriter.SlicedWriter, relativePath string, absPath string, createManifest bool, addColumnsToManifest bool) error {
 	msg := fmt.Sprintf(
 		"Table \"%s\" sliced, written %d slices, %s rows, total size %s",
 		relativePath,
@@ -113,6 +113,6 @@ func logResult(logger *log.Logger, w *slicedwriter.SlicedWriter, relativePath st
 		msg += "."
 	}
 
-	logger.Println(msg)
+	logger.Info(msg)
 	return nil
 }

@@ -2,7 +2,6 @@ package processor
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/dustin/go-humanize"
 
@@ -10,19 +9,20 @@ import (
 	"github.com/keboola/processor-split-table/internal/pkg/csv"
 	"github.com/keboola/processor-split-table/internal/pkg/finder"
 	"github.com/keboola/processor-split-table/internal/pkg/kbc"
+	"github.com/keboola/processor-split-table/internal/pkg/log"
 	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
 // Processor processes files found by Finder.
 type Processor struct {
-	logger    *log.Logger
+	logger    log.Logger
 	config    *config.Config
 	inputDir  string
 	outputDir string
 	files     []*finder.FileNode
 }
 
-func NewProcessor(logger *log.Logger, conf *config.Config, inputDir string, outputDir string, files []*finder.FileNode) *Processor {
+func NewProcessor(logger log.Logger, conf *config.Config, inputDir string, outputDir string, files []*finder.FileNode) *Processor {
 	return &Processor{logger: logger, config: conf, inputDir: inputDir, outputDir: outputDir, files: files}
 }
 
@@ -38,11 +38,11 @@ func (p *Processor) Run() error {
 	// Log settings
 	switch p.config.Parameters.Mode {
 	case config.ModeBytes:
-		p.logger.Printf("Configured max %s per slice.", humanize.IBytes(p.config.Parameters.BytesPerSlice))
+		p.logger.Infof("Configured max %s per slice.", humanize.IBytes(p.config.Parameters.BytesPerSlice))
 	case config.ModeRows:
-		p.logger.Printf("Configured max %s rows per slice.", humanize.Comma(int64(p.config.Parameters.RowsPerSlice)))
+		p.logger.Infof("Configured max %s rows per slice.", humanize.Comma(int64(p.config.Parameters.RowsPerSlice)))
 	case config.ModeSlices:
-		p.logger.Printf(
+		p.logger.Infof(
 			"Configured number of slices is %d, min %s per slice.",
 			p.config.Parameters.NumberOfSlices,
 			humanize.IBytes(p.config.Parameters.MinBytesPerSlice),
@@ -52,7 +52,7 @@ func (p *Processor) Run() error {
 	}
 
 	if p.config.Parameters.Gzip {
-		p.logger.Printf("Gzip enabled, compression level = %d.", p.config.Parameters.GzipLevel)
+		p.logger.Infof("Gzip enabled, compression level = %d.", p.config.Parameters.GzipLevel)
 	}
 
 	// Process all found files
@@ -74,7 +74,7 @@ func (p *Processor) Run() error {
 			}
 		case finder.CsvTableSliced:
 			// Already sliced tables are copied from in -> out
-			p.logger.Printf("Copying already sliced table \"%s\".\n", file.RelativePath)
+			p.logger.Infof("Copying already sliced table \"%s\".", file.RelativePath)
 			if err := utils.CopyRecursive(inPath, outPath); err != nil {
 				return err
 			}
@@ -88,7 +88,7 @@ func (p *Processor) Run() error {
 
 		case finder.File:
 			// Files are copied from in -> out
-			p.logger.Printf("Copying \"%s\".\n", file.RelativePath)
+			p.logger.Infof("Copying \"%s\".", file.RelativePath)
 			if err := utils.CopyRecursive(inPath, outPath); err != nil {
 				return err
 			}
