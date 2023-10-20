@@ -43,14 +43,14 @@ func Run(logger log.Logger) error {
 	// Log settings
 	switch cfg.Parameters.Mode {
 	case slicerConfig.ModeBytes:
-		logger.Infof("Configured max %s per slice.", humanize.IBytes(cfg.Parameters.BytesPerSlice))
+		logger.Infof("Configured max %s per slice.", utils.RemoveSpaces(cfg.Parameters.BytesPerSlice.HumanReadable()))
 	case slicerConfig.ModeRows:
 		logger.Infof("Configured max %s rows per slice.", humanize.Comma(int64(cfg.Parameters.RowsPerSlice)))
 	case slicerConfig.ModeSlices:
 		logger.Infof(
 			"Configured number of slices is %d, min %s per slice.",
 			cfg.Parameters.NumberOfSlices,
-			humanize.IBytes(cfg.Parameters.MinBytesPerSlice),
+			utils.RemoveSpaces(cfg.Parameters.MinBytesPerSlice.HumanReadable()),
 		)
 	default:
 		return kbc.UserErrorf("unexpected mode \"%s\".", cfg.Parameters.Mode)

@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/c2h5oh/datasize"
 	gzip "github.com/klauspost/pgzip"
 
 	"github.com/keboola/processor-split-table/internal/pkg/kbc"
@@ -15,7 +16,7 @@ import (
 
 const (
 	OutBufferSize = 20 * 1024 * 1024  // 20 MB
-	GcMaxBytes    = 500 * 1024 * 1024 // run garbage collector each 500 MB written
+	GcMaxBytes    = 500 * datasize.MB // run garbage collector each 500 MB written
 )
 
 // slice writes to the one slice.
@@ -25,8 +26,8 @@ type slice struct {
 	file        *os.File
 	writer      io.Writer
 	rows        uint64
-	bytes       uint64
-	bytesFromGc uint64 // bytes from last garbage collector run
+	bytes       datasize.ByteSize
+	bytesFromGc datasize.ByteSize // bytes from last garbage collector run
 }
 
 func newSlice(cfg config.Config, filePath string) (*slice, error) {
@@ -58,8 +59,8 @@ func (s *slice) Write(row []byte, rowLength uint64) error {
 		return fmt.Errorf("unexpected length written to \"%s\", expected %d, written %d", s.path, rowLength, n)
 	}
 	s.rows++
-	s.bytes += rowLength
-	s.bytesFromGc += rowLength
+	s.bytes += datasize.ByteSize(rowLength)
+	s.bytesFromGc += datasize.ByteSize(rowLength)
 
 	// Run garbage collector each GcMaxBytes
 	if s.bytesFromGc > GcMaxBytes {
@@ -107,7 +108,7 @@ func (s *slice) IsSpaceForNextRow(rowLength uint64) bool {
 
 	switch s.config.Mode {
 	case config.ModeBytes:
-		return s.bytes+rowLength <= s.config.BytesPerSlice
+		return s.bytes+datasize.ByteSize(rowLength) <= s.config.BytesPerSlice
 	case config.ModeRows:
 		return s.rows < s.config.RowsPerSlice
 	default:

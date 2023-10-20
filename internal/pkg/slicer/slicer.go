@@ -4,8 +4,8 @@ package slicer
 import (
 	"fmt"
 	"os"
-	"strings"
 
+	"github.com/c2h5oh/datasize"
 	"github.com/dustin/go-humanize"
 	"github.com/go-playground/validator/v10"
 
@@ -44,14 +44,14 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 	slicedInput := stat.IsDir()
 
 	// Get input size
-	var inputSize int64
+	var inputSize datasize.ByteSize
 	if slicedInput {
 		inputSize, err = utils.DirSize(table.InPath)
 		if err != nil {
 			return err
 		}
 	} else {
-		inputSize = stat.Size()
+		inputSize = datasize.ByteSize(stat.Size())
 	}
 
 	// Load manifest
@@ -126,7 +126,7 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 	outBytes := writer.AlLBytes()
 	if writer.GzipEnabled() {
 		if dirSize, err := utils.DirSize(table.OutPath); err == nil {
-			outBytes = uint64(dirSize)
+			outBytes = dirSize
 		} else {
 			return err
 		}
@@ -137,8 +137,8 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 		"Table \"%s\" sliced: in/out: %d / %d slices, %s / %s bytes, %s rows",
 		table.Name,
 		reader.Slices(), writer.Slices(),
-		strings.ReplaceAll(humanize.IBytes(uint64(inputSize)), " ", ""),
-		strings.ReplaceAll(humanize.IBytes(outBytes), " ", ""),
+		utils.RemoveSpaces(inputSize.HumanReadable()),
+		utils.RemoveSpaces(outBytes.HumanReadable()),
 		humanize.Comma(int64(writer.AllRows())),
 	)
 
