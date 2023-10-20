@@ -1,9 +1,10 @@
 package processor
 
 import (
+	"fmt"
 	"log"
 
-	humanize "github.com/dustin/go-humanize"
+	"github.com/dustin/go-humanize"
 
 	"github.com/keboola/processor-split-table/internal/pkg/config"
 	"github.com/keboola/processor-split-table/internal/pkg/csv"
@@ -25,10 +26,14 @@ func NewProcessor(logger *log.Logger, conf *config.Config, inputDir string, outp
 	return &Processor{logger: logger, config: conf, inputDir: inputDir, outputDir: outputDir, files: files}
 }
 
-func (p *Processor) Run() {
+func (p *Processor) Run() error {
 	// Create in/out dirs if not exits
-	utils.Mkdir(p.inputDir)
-	utils.Mkdir(p.outputDir)
+	if err := utils.Mkdir(p.inputDir); err != nil {
+		return err
+	}
+	if err := utils.Mkdir(p.outputDir); err != nil {
+		return err
+	}
 
 	// Log settings
 	switch p.config.Parameters.Mode {
@@ -43,7 +48,7 @@ func (p *Processor) Run() {
 			humanize.IBytes(p.config.Parameters.MinBytesPerSlice),
 		)
 	default:
-		kbc.PanicApplicationErrorf("Unexpected mode \"%s\".", p.config.Parameters.Mode)
+		return kbc.UserErrorf("unexpected mode \"%s\".", p.config.Parameters.Mode)
 	}
 
 	if p.config.Parameters.Gzip {
@@ -60,24 +65,38 @@ func (p *Processor) Run() {
 		switch file.FileType {
 		case finder.CsvTableSingle:
 			// Single file CSV tables -> split
-			csv.SliceCsv(p.logger, p.config, file.RelativePath, inPath, inManifestPath, outPath, outManifestPath)
+			if err := csv.SliceCsv(p.logger, p.config, file.RelativePath, inPath, inManifestPath, outPath, outManifestPath); err != nil {
+				return err
+			}
 		case finder.Directory:
-			utils.Mkdir(outPath)
+			if err := utils.Mkdir(outPath); err != nil {
+				return err
+			}
 		case finder.CsvTableSliced:
 			// Already sliced tables are copied from in -> out
 			p.logger.Printf("Copying already sliced table \"%s\".\n", file.RelativePath)
-			utils.CopyRecursive(inPath, outPath)
-			if utils.FileExists(inManifestPath) {
-				utils.CopyRecursive(inManifestPath, outManifestPath)
+			if err := utils.CopyRecursive(inPath, outPath); err != nil {
+				return err
+			}
+			if found, err := utils.FileExists(inManifestPath); err != nil {
+				return err
+			} else if found {
+				if err := utils.CopyRecursive(inManifestPath, outManifestPath); err != nil {
+					return err
+				}
 			}
 
 		case finder.File:
 			// Files are copied from in -> out
 			p.logger.Printf("Copying \"%s\".\n", file.RelativePath)
-			utils.CopyRecursive(inPath, outPath)
+			if err := utils.CopyRecursive(inPath, outPath); err != nil {
+				return err
+			}
 
 		default:
-			kbc.PanicApplicationErrorf("Unexpected FileType \"%s\".", file.FileType)
+			return fmt.Errorf("unexpected FileType \"%v\"", file.FileType)
 		}
 	}
+
+	return nil
 }

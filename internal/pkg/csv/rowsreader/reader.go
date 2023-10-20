@@ -2,12 +2,12 @@ package rowsreader
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/keboola/processor-split-table/internal/pkg/csv/columnsparser"
 	"github.com/keboola/processor-split-table/internal/pkg/kbc"
-	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
 const (
@@ -26,35 +26,38 @@ type CsvReader struct {
 	enclosure byte
 }
 
-func NewCsvReader(csvPath string, delimiter byte, enclosure byte) *CsvReader {
+func NewCsvReader(csvPath string, delimiter byte, enclosure byte) (*CsvReader, error) {
 	// Open CSV file
-	file := utils.OpenFile(csvPath, os.O_RDONLY)
+	file, err := os.OpenFile(csvPath, os.O_RDONLY, 0)
+	if err != nil {
+		return nil, err
+	}
 
 	// Create scanner with custom split function
 	buffer := make([]byte, StartTokenBufferSize)
 	scanner := bufio.NewScanner(file)
 	scanner.Split(getSplitRowsFunc(enclosure))
 	scanner.Buffer(buffer, MaxTokenBufferSize)
-	return &CsvReader{csvPath, 0, scanner, delimiter, enclosure}
+	return &CsvReader{csvPath, 0, scanner, delimiter, enclosure}, nil
 }
 
-func (r *CsvReader) Header() []string {
+func (r *CsvReader) Header() ([]string, error) {
 	// Header can only be read if no row has been read yet
 	if r.rowNumber != 0 {
-		kbc.PanicApplicationErrorf(
-			"The header cannot be read, other lines have already been read from CSV \"%s\".",
+		return nil, fmt.Errorf(
+			"the header cannot be read, other lines have already been read from CSV \"%s\"",
 			filepath.Base(r.path),
 		)
 	}
 
 	// Header must be present for tables that don't have columns in manifest.json
 	if !r.Read() {
-		kbc.PanicUserErrorf("Missing header row in CSV \"%s\".", filepath.Base(r.path))
+		return nil, kbc.UserErrorf("missing header row in CSV \"%s\"", filepath.Base(r.path))
 	}
 
 	// Check if no error
 	if r.Err() != nil {
-		kbc.PanicApplicationErrorf("Error when reading CSV header: %s", r.Err())
+		return nil, kbc.UserErrorf("error when reading CSV header: %w", r.Err())
 	}
 
 	// Parse columns
@@ -62,10 +65,10 @@ func (r *CsvReader) Header() []string {
 	p := columnsparser.NewParser(r.delimiter, r.enclosure)
 	columns, err := p.Parse(header)
 	if err != nil {
-		kbc.PanicApplicationErrorf("Cannot parse CSV header: %s.", err)
+		return nil, fmt.Errorf("cannot parse CSV header: %w", err)
 	}
 
-	return columns
+	return columns, nil
 }
 
 func (r *CsvReader) Read() bool {

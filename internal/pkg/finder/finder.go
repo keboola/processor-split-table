@@ -1,12 +1,11 @@
 package finder
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/keboola/processor-split-table/internal/pkg/kbc"
 )
 
 type FileType int
@@ -26,7 +25,7 @@ type FileNode struct {
 
 // FindFilesRecursive returns all files/dirs in the rootDir and sub-dirs.
 // Each entry is mapped to FileNode. FileNode.FileType determines further work.
-func FindFilesRecursive(rootDir string) []*FileNode {
+func FindFilesRecursive(rootDir string) ([]*FileNode, error) {
 	// Found nodes
 	var files []*FileNode
 
@@ -90,10 +89,10 @@ func FindFilesRecursive(rootDir string) []*FileNode {
 		return nil
 	})
 	if err != nil {
-		kbc.PanicApplicationErrorf("Cannot iterate over directory \"%s\": %s \n", rootDir, err)
+		return nil, fmt.Errorf("cannot iterate over directory \"%s\": %w", rootDir, err)
 	}
 
-	return files
+	return files, nil
 }
 
 func isSlicedCsvTable(entry os.DirEntry, relativePath string) bool {

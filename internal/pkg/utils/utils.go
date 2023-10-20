@@ -1,73 +1,52 @@
 package utils
 
 import (
-	"bufio"
 	"bytes"
-	"encoding/json"
 	"errors"
-	"io"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
 
 	"github.com/otiai10/copy"
-
-	"github.com/keboola/processor-split-table/internal/pkg/kbc"
 )
 
-func Mkdir(path string) {
+// Mkdir creates dir if not exists.
+func Mkdir(path string) error {
 	if err := os.Mkdir(path, 0o755); err != nil && !os.IsExist(err) {
-		kbc.PanicApplicationErrorf("Cannot create dir \"%s\": %s", path, err)
+		return fmt.Errorf("cannot create dir \"%s\": %w", path, err)
 	}
+	return nil
 }
 
 // CopyRecursive dir or file.
-func CopyRecursive(src string, target string) {
+func CopyRecursive(src string, target string) error {
 	if err := copy.Copy(src, target); err != nil {
-		kbc.PanicApplicationErrorf("Copy \"%s\" -> \"%s\" error: %s", src, target, err)
+		return fmt.Errorf("copy \"%s\" -> \"%s\" error: %w", src, target, err)
 	}
-}
-
-func OpenFile(path string, flag int) *os.File {
-	file, err := os.OpenFile(path, flag, 0o644)
-	if err != nil {
-		kbc.PanicApplicationErrorf("Cannot open file \"%s\": %s", path, err)
-	}
-	return file
-}
-
-func CloseFile(file *os.File, path string) {
-	if file == nil {
-		return
-	}
-
-	if err := file.Close(); err != nil {
-		kbc.PanicApplicationErrorf("Cannot close file \"%s\": %s", path, err)
-	}
+	return nil
 }
 
 // FileExists returns true if file exists.
-func FileExists(path string) bool {
+func FileExists(path string) (bool, error) {
 	if _, err := os.Stat(path); err == nil {
-		return true
+		return true, nil
 	} else if !os.IsNotExist(err) {
-		kbc.PanicApplicationErrorf("Cannot test if file exists \"%s\": %s", path, err)
+		return false, fmt.Errorf("cannot test if file exists \"%s\": %w", path, err)
 	}
-
-	return false
+	return false, nil
 }
 
-func FileSize(path string) uint64 {
+func FileSize(path string) (uint64, error) {
 	fi, err := os.Stat(path)
 	if err != nil {
-		kbc.PanicApplicationErrorf("Cannot get file size of \"%s\": %s", path, err)
+		return 0, fmt.Errorf("cannot get file size of \"%s\": %w", path, err)
 	}
-
-	return uint64(fi.Size())
+	return uint64(fi.Size()), nil
 }
 
-func DirSize(path string) uint64 {
+func DirSize(path string) (uint64, error) {
 	var size uint64
 	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -79,43 +58,10 @@ func DirSize(path string) uint64 {
 		return nil
 	})
 	if err != nil {
-		kbc.PanicApplicationErrorf("Cannot get dir \"%s\" size: %s", path, err)
+		return 0, fmt.Errorf("cannot get dir \"%s\" size: %w", path, err)
 	}
 
-	return size
-}
-
-func WriteStringToFile(file *os.File, str string, path string) {
-	WriteToFile(file, []byte(str), path)
-}
-
-func WriteToFile(file *os.File, str []byte, path string) {
-	if _, err := file.Write(str); err != nil {
-		kbc.PanicApplicationErrorf("Cannot write to file \"%s\": %s", path, err)
-	}
-}
-
-func FlushWriter(writer *bufio.Writer, path string) {
-	if writer != nil {
-		if err := writer.Flush(); err != nil {
-			kbc.PanicApplicationErrorf("Cannot flush file \"%s\": %s", path, err)
-		}
-	}
-}
-
-func JSONUnmarshal(data []byte, path string, v interface{}) {
-	jsonErr := json.Unmarshal(data, v)
-	if jsonErr != nil {
-		kbc.PanicUserErrorf("Cannot parse JSON file \"%s\": %s", path, jsonErr)
-	}
-}
-
-func ReadAll(in io.Reader, path string) []byte {
-	content, err := io.ReadAll(in)
-	if err != nil {
-		kbc.PanicApplicationErrorf("Cannot read file \"%s\": %s", path, err)
-	}
-	return content
+	return size, nil
 }
 
 // AssertDirectoryContentsSame compares two directories using diff command.

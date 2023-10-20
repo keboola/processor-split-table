@@ -1,3 +1,3 @@
 Configured number of slices is 4, min 1 B per slice.
 Slicing table "tables/tenRows.csv".
-Table "tables/tenRows.csv" sliced. Written 4 parts, 10 rows, total size 101 B. Manifest created.
+Table "tables/tenRows.csv" sliced, written 4 slices, 10 rows, total size 101 B, manifest created.

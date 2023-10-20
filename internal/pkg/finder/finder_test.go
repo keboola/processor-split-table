@@ -6,13 +6,17 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFindFilesRecursiveEmpty(t *testing.T) {
 	t.Parallel()
 
 	_, testFile, _, _ := runtime.Caller(0)
-	files := FindFilesRecursive(filepath.Dir(testFile) + "/fixtures/empty")
+
+	files, err := FindFilesRecursive(filepath.Dir(testFile) + "/fixtures/empty")
+	require.NoError(t, err)
+
 	var expected []*FileNode
 	assert.Equal(t, expected, files)
 }
@@ -21,7 +25,10 @@ func TestFindFilesRecursiveComplex(t *testing.T) {
 	t.Parallel()
 
 	_, testFile, _, _ := runtime.Caller(0)
-	files := FindFilesRecursive(filepath.Dir(testFile) + "/fixtures/complex")
+
+	files, err := FindFilesRecursive(filepath.Dir(testFile) + "/fixtures/complex")
+	require.NoError(t, err)
+
 	expected := []*FileNode{
 		{
 			FileType:     Directory,

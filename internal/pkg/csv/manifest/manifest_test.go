@@ -1,12 +1,14 @@
 package manifest
 
 import (
+	"encoding/json"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
-	"github.com/keboola/processor-split-table/internal/pkg/utils"
+	"github.com/keboola/processor-split-table/internal/pkg/kbc"
 )
 
 type testData struct {
@@ -28,32 +30,30 @@ func TestGetSet(t *testing.T) {
 		// Create test manifest.json
 		manifestPath := tempDir + "/manifest.json"
 		if testData.input != "" {
-			f := utils.OpenFile(manifestPath, os.O_WRONLY|os.O_CREATE)
-			utils.WriteStringToFile(f, testData.input, manifestPath)
-			utils.CloseFile(f, manifestPath)
+			require.NoError(t, os.WriteFile(manifestPath, []byte(testData.input), kbc.NewFilePermissions))
 		}
 
 		// Check expected columns
-		manifest := LoadManifest(manifestPath)
-		assert.Equal(t, testData.columns, manifest.GetColumns())
+		manifest, err := LoadManifest(manifestPath)
+		require.NoError(t, err)
+		assert.Equal(t, testData.columns, manifest.Columns())
 
 		// Set different columns
 		newColumns := []string{"1", "2", "3"}
 		manifest.SetColumns(newColumns)
 		assert.True(t, manifest.HasColumns())
-		assert.Equal(t, newColumns, manifest.GetColumns())
+		assert.Equal(t, newColumns, manifest.Columns())
 
 		// Write to file
-		manifest.WriteTo(manifestPath)
+		require.NoError(t, manifest.WriteTo(manifestPath))
 
 		// Load stored content
-		f := utils.OpenFile(manifestPath, os.O_RDONLY)
-		content := utils.ReadAll(f, manifestPath)
-		utils.CloseFile(f, manifestPath)
+		content, err := os.ReadFile(manifestPath)
+		require.NoError(t, err)
 
 		// Parse JSON
 		var parsedContent map[string]interface{}
-		utils.JSONUnmarshal(content, manifestPath, &parsedContent)
+		require.NoError(t, json.Unmarshal(content, &parsedContent))
 
 		// New columns are stored in the manifest file
 		assert.Equal(t, testData.newState, parsedContent)

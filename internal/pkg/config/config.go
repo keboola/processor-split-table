@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"reflect"
 	"strings"
@@ -11,7 +13,6 @@ import (
 	"github.com/go-playground/validator/v10"
 
 	"github.com/keboola/processor-split-table/internal/pkg/kbc"
-	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
 const (
@@ -47,24 +48,33 @@ func (m *Mode) UnmarshalText(b []byte) error {
 	case "slices":
 		*m = ModeSlices
 	default:
-		return fmt.Errorf("unexpected value \"%s\" for \"mode\". Use \"rows\", \"bytes\" or \"slices\"", str)
+		return fmt.Errorf(`unexpected value "%s" for "mode", use "rows", "bytes" or "slices"`, str)
 	}
 
 	return nil
 }
 
-func LoadConfig(configPath string) *Config {
-	// Load file
+func LoadConfig(configPath string) (*Config, error) {
+	// Open config
 	f, err := os.OpenFile(configPath, os.O_RDONLY, 0o640)
 	if err != nil {
 		if os.IsNotExist(err) {
-			kbc.PanicUserErrorf("Config file not found.")
+			return nil, kbc.UserErrorf("config file not found")
 		} else {
-			kbc.PanicUserErrorf("Cannot open config file: %s", err)
+			return nil, kbc.UserErrorf("cannot open config file: %w", err)
 		}
 	}
-	content := utils.ReadAll(f, configPath)
-	utils.CloseFile(f, configPath)
+	defer func() {
+		if err := f.Close(); err != nil {
+			log.Println(fmt.Errorf(`cannot close file "%s": %w`, configPath, err))
+		}
+	}()
+
+	// Read config
+	content, err := io.ReadAll(f)
+	if err != nil {
+		return nil, kbc.UserErrorf(`cannot read config "%s": %w`, configPath, err)
+	}
 
 	// Default values
 	conf := &Config{
@@ -82,45 +92,47 @@ func LoadConfig(configPath string) *Config {
 	// Parse JSON
 	err = json.Unmarshal(content, conf)
 	if err != nil {
-		kbc.PanicUserErrorf("Invalid configuration: %s.", processJSONError(err))
+		return nil, kbc.UserErrorf("invalid configuration: %s", processJSONError(err))
 	}
 
 	// Validate
-	validate(conf)
+	if err := validate(conf); err != nil {
+		return nil, kbc.UserErrorf("invalid configuration: %s", processJSONError(err))
+	}
 
-	return conf
+	return conf, nil
 }
 
-func validate(conf *Config) {
-	validate := validator.New()
-	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
+func validate(conf *Config) error {
+	val := validator.New()
+	val.RegisterTagNameFunc(func(fld reflect.StructField) string {
 		// Use JSON field name in error messages
 		return strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
 	})
 
-	err := validate.Struct(conf)
-	if err != nil {
+	if err := val.Struct(conf); err != nil {
 		// nolint: errorlint
-		kbc.PanicUserErrorf("Invalid configuration: %s.", processValidateError(err.(validator.ValidationErrors)))
+		return processValidateError(err.(validator.ValidationErrors))
 	}
+
+	return nil
 }
 
 func processJSONError(e error) string {
 	// Custom error message
 	var typeError *json.UnmarshalTypeError
 	if errors.As(e, &typeError) {
-		return fmt.Sprintf("key \"%s\" has invalid type \"%s\"", typeError.Field, typeError.Value)
+		return fmt.Sprintf(`key "%s" has invalid type "%s"`, typeError.Field, typeError.Value)
 	}
-
 	return e.Error()
 }
 
-func processValidateError(err validator.ValidationErrors) string {
+func processValidateError(err validator.ValidationErrors) error {
 	msg := ""
 	for _, e := range err {
 		path := strings.TrimPrefix(e.Namespace(), "Config.")
 		msg += fmt.Sprintf(
-			"key=\"%s\", value=\"%v\" failed on the \"%s\" validation ",
+			`key="%s", value="%v" failed on the "%s" validation `,
 			path,
 			e.Value(),
 			e.ActualTag(),
@@ -130,5 +142,5 @@ func processValidateError(err validator.ValidationErrors) string {
 		break
 	}
 
-	return strings.TrimSpace(msg)
+	return errors.New(strings.TrimSpace(msg))
 }

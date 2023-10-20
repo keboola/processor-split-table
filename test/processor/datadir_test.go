@@ -17,6 +17,7 @@ import (
 
 	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/keboola/processor-split-table/internal/pkg/kbc"
 	"github.com/keboola/processor-split-table/internal/pkg/utils"
@@ -53,7 +54,9 @@ func RunDataDirTest(t *testing.T, testDir string, binary string) {
 
 	// Copy all from source dir to data dir
 	sourceDir := testDir + "/source/data"
-	if utils.FileExists(sourceDir) {
+	found, err := utils.FileExists(sourceDir)
+	require.NoError(t, err)
+	if found {
 		err := copy.Copy(sourceDir, dataDir)
 		if err != nil {
 			t.Fatalf("Copy error: " + fmt.Sprint(err))
@@ -84,7 +87,7 @@ func RunDataDirTest(t *testing.T, testDir string, binary string) {
 	}
 
 	// Un-gzip files for easier comparison
-	unGzipAllInDir(dataDir + "/out")
+	unGzipAllInDir(t, dataDir+"/out")
 
 	AssertExpectations(t, testDir, dataDir, exitCode, stdout.String(), stderr.String())
 }
@@ -145,7 +148,9 @@ func AssertExpectations(
 	}
 
 	// Assert dirs have same content
-	if utils.FileExists(expectedDir) {
+	found, err := utils.FileExists(expectedDir)
+	require.NoError(t, err)
+	if found {
 		utils.AssertDirectoryContentsSame(t, expectedDir, dataDir+"/out")
 	}
 }
@@ -234,7 +239,9 @@ func WildcardToRegexp(pattern string) string {
 	return result.String()
 }
 
-func unGzipAllInDir(dir string) {
+func unGzipAllInDir(t *testing.T, dir string) {
+	t.Helper()
+
 	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, entryErr error) error {
 		// Stop on error
 		if entryErr != nil {
@@ -242,44 +249,40 @@ func unGzipAllInDir(dir string) {
 		}
 
 		if !d.IsDir() && strings.HasSuffix(path, ".gz") {
-			unGzipFile(path)
+			unGzipFile(t, path)
 		}
 
 		return nil
 	})
-	if err != nil {
-		kbc.PanicApplicationErrorf("Cannot iterate over directory \"%s\": %s \n", dir, err)
-	}
+	require.NoError(t, err)
 }
 
-func unGzipFile(srcPath string) {
+func unGzipFile(t *testing.T, srcPath string) {
+	t.Helper()
+
 	trgPath := srcPath + ".ungzipped"
 
-	// Open source and create gzip reader
-	src := utils.OpenFile(srcPath, os.O_RDONLY)
-	gzReader, err := gzip.NewReader(src)
-	if err != nil {
-		kbc.PanicApplicationErrorf("Cannot create gzip reader.")
-	}
+	// Open file
+	in, err := os.OpenFile(srcPath, os.O_RDONLY, 0)
+	require.NoError(t, err)
+
+	// create gzip reader
+	rgz, err := gzip.NewReader(in)
+	require.NoError(t, err)
 
 	// Open target
-	trg := utils.OpenFile(trgPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
+	out, err := os.OpenFile(trgPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, kbc.NewFilePermissions)
+	require.NoError(t, err)
 
 	// Decompress source content
-	if _, err = io.Copy(trg, gzReader); err != nil {
-		kbc.PanicApplicationErrorf("Cannot decompress file \"%s\": %s", srcPath, err)
-	}
+	_, err = io.Copy(out, rgz)
+	require.NoError(t, err)
 
 	// Close all
-	err = gzReader.Close()
-	if err != nil {
-		kbc.PanicApplicationErrorf("Cannot close gzip reader.")
-	}
-	utils.CloseFile(src, srcPath)
-	utils.CloseFile(trg, trgPath)
+	require.NoError(t, rgz.Close())
+	require.NoError(t, in.Close())
+	require.NoError(t, out.Close())
 
 	// Remove original file
-	if err := os.Remove(srcPath); err != nil {
-		kbc.PanicApplicationErrorf("Cannot remove file \"%s\": %s", srcPath, err)
-	}
+	require.NoError(t, os.Remove(srcPath))
 }
