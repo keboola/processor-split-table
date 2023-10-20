@@ -3,6 +3,8 @@ package slicer
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/dustin/go-humanize"
 	"github.com/go-playground/validator/v10"
@@ -21,7 +23,7 @@ type Table struct {
 	InPath          string `validate:"required"`
 	InManifestPath  string
 	OutPath         string `validate:"required"`
-	OutManifestPath string
+	OutManifestPath string `validate:"required"`
 }
 
 func SliceTable(logger log.Logger, table Table) (err error) {
@@ -38,14 +40,32 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 		return err
 	}
 
-	// Get file size
-	fileSize, err := utils.FileSize(table.InPath)
+	// Get input type
+	stat, err := os.Stat(table.InPath)
+	if err != nil {
+		return err
+	}
+	slicedInput := stat.IsDir()
+
+	// Get input size
+	var inputSize int64
+	if slicedInput {
+		inputSize, err = utils.DirSize(table.InPath)
+		if err != nil {
+			return err
+		}
+	} else {
+		inputSize = stat.Size()
+	}
+
+	// Load manifest
+	manifest, err := manifestPkg.LoadManifest(table.InManifestPath)
 	if err != nil {
 		return err
 	}
 
 	// Create writer
-	writer, err := slicedwriter.New(table.Config, fileSize, table.OutPath)
+	writer, err := slicedwriter.New(table.Config, inputSize, table.OutPath)
 	if err != nil {
 		return err
 	}
@@ -55,13 +75,13 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 		}
 	}()
 
-	manifest, err := manifestPkg.LoadManifest(table.InManifestPath)
-	if err != nil {
-		return err
-	}
-
 	// Create reader
-	reader, err := rowsreader.NewCsvReader(table.InPath, manifest.Delimiter(), manifest.Enclosure())
+	var reader *rowsreader.CSVReader
+	if slicedInput {
+		reader, err = rowsreader.NewSlicesReader(table.InPath, manifest.Delimiter(), manifest.Enclosure())
+	} else {
+		reader, err = rowsreader.NewFileReader(table.InPath, manifest.Delimiter(), manifest.Enclosure())
+	}
 	if err != nil {
 		return err
 	}
@@ -83,43 +103,45 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 		}
 	}
 
-	// Check if no error
-	if reader.Err() != nil {
-		return fmt.Errorf("error when reading CSV \"%s\": %w", table.InPath, reader.Err())
+	// Close the reader
+	if err = reader.Close(); err != nil {
+		return fmt.Errorf("error when reading CSV \"%s\": %w", table.InPath, err)
 	}
 
 	// Write manifest
-	if table.OutManifestPath != "" {
-		if err := manifest.WriteTo(table.OutManifestPath); err != nil {
-			return err
-		}
+	if err := manifest.WriteTo(table.OutManifestPath); err != nil {
+		return err
 	}
 
-	// Log info
-	msg := fmt.Sprintf(
-		"Table \"%s\" sliced, written %d slices, %s rows, total size %s",
-		table.Name,
-		writer.Slices(),
-		humanize.Comma(int64(writer.AllRows())),
-		humanize.IBytes(writer.AlLBytes()),
-	)
-
+	// Get output size
+	outBytes := writer.AlLBytes()
 	if writer.GzipEnabled() {
 		if dirSize, err := utils.DirSize(table.OutPath); err == nil {
-			msg += fmt.Sprintf(", gzipped size %s", humanize.IBytes(dirSize))
+			outBytes = uint64(dirSize)
 		} else {
 			return err
 		}
 	}
 
+	// Log statistics
+	msg := fmt.Sprintf(
+		"Table \"%s\" sliced: in/out: %d / %d slices, %s / %s bytes, %s rows",
+		table.Name,
+		reader.Slices(), writer.Slices(),
+		strings.ReplaceAll(humanize.IBytes(uint64(inputSize)), " ", ""),
+		strings.ReplaceAll(humanize.IBytes(outBytes), " ", ""),
+		humanize.Comma(int64(writer.AllRows())),
+	)
+
 	switch {
 	case !manifest.Exists():
-		msg += ", manifest created."
+		msg += ", manifest created"
 	case manifest.Modified():
-		msg += ", columns added to manifest."
+		msg += ", manifest updated"
 	default:
-		msg += "."
+		msg += ", manifest unaffected"
 	}
+	msg += "."
 
 	logger.Info(msg)
 	return nil
