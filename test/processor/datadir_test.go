@@ -63,6 +63,9 @@ func RunDataDirTest(t *testing.T, testDir string, binary string) {
 		}
 	}
 
+	// Gzip files for easier definition
+	gzipAllInDir(t, dataDir+"/in")
+
 	// Create common directories
 	_ = os.Mkdir(dataDir+"/out", 0o755)
 	_ = os.Mkdir(dataDir+"/out/tables", 0o755)
@@ -239,6 +242,24 @@ func WildcardToRegexp(pattern string) string {
 	return result.String()
 }
 
+func gzipAllInDir(t *testing.T, dir string) {
+	t.Helper()
+
+	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, entryErr error) error {
+		// Stop on error
+		if entryErr != nil {
+			return entryErr
+		}
+
+		if !d.IsDir() && strings.HasSuffix(path, ".ungzipped") {
+			gzipFile(t, path)
+		}
+
+		return nil
+	})
+	require.NoError(t, err)
+}
+
 func unGzipAllInDir(t *testing.T, dir string) {
 	t.Helper()
 
@@ -255,6 +276,35 @@ func unGzipAllInDir(t *testing.T, dir string) {
 		return nil
 	})
 	require.NoError(t, err)
+}
+
+func gzipFile(t *testing.T, srcPath string) {
+	t.Helper()
+
+	trgPath := strings.TrimSuffix(srcPath, ".ungzipped")
+
+	// Open file
+	in, err := os.OpenFile(srcPath, os.O_RDONLY, 0)
+	require.NoError(t, err)
+
+	// Open target
+	out, err := os.OpenFile(trgPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, kbc.NewFilePermissions)
+	require.NoError(t, err)
+
+	// create gzip reader
+	wgz := gzip.NewWriter(out)
+
+	// Compress source content
+	_, err = io.Copy(wgz, in)
+	require.NoError(t, err)
+
+	// Close all
+	require.NoError(t, wgz.Close())
+	require.NoError(t, in.Close())
+	require.NoError(t, out.Close())
+
+	// Remove original file
+	require.NoError(t, os.Remove(srcPath))
 }
 
 func unGzipFile(t *testing.T, srcPath string) {
