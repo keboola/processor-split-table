@@ -9,6 +9,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/go-playground/validator/v10"
 
+	"github.com/keboola/processor-split-table/internal/pkg/kbc"
 	"github.com/keboola/processor-split-table/internal/pkg/log"
 	manifestPkg "github.com/keboola/processor-split-table/internal/pkg/manifest"
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/config"
@@ -32,12 +33,7 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 	// Validate
 	val := validator.New()
 	if err := val.Struct(table); err != nil {
-		return fmt.Errorf(`table definition is not valid: %w`, err)
-	}
-
-	// Create target dir
-	if err := utils.Mkdir(table.OutPath); err != nil {
-		return err
+		return kbc.UserErrorf(`table definition is not valid: %w`, err)
 	}
 
 	// Get input type
@@ -61,6 +57,19 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 	// Load manifest
 	manifest, err := manifestPkg.LoadManifest(table.InManifestPath)
 	if err != nil {
+		return err
+	}
+
+	// Check manifest, if the table is sliced
+	if slicedInput && !manifest.Exists() {
+		return kbc.UserErrorf(`the manifest "%s" not found, it is required for the sliced table`, table.InManifestPath)
+	}
+	if slicedInput && !manifest.HasColumns() {
+		return kbc.UserErrorf(`the manifest "%s" has no columns, columns are required for the sliced table`, table.InManifestPath)
+	}
+
+	// Create target dir
+	if err := utils.Mkdir(table.OutPath); err != nil {
 		return err
 	}
 
