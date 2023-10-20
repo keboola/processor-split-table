@@ -30,7 +30,7 @@ func TestReadHeader(t *testing.T) {
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
 
-	csvReader, err := NewCsvReader(rootDir+"/fixtures/two_rows.csv", ',', '"')
+	csvReader, err := NewFileReader(rootDir+"/fixtures/two_rows.csv", ',', '"')
 	require.NoError(t, err)
 
 	header, err := csvReader.Header()
@@ -44,7 +44,7 @@ func TestReadHeaderCannotParse(t *testing.T) {
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
 
-	csvReader, err := NewCsvReader(rootDir+"/fixtures/bad_header.csv", ',', '"')
+	csvReader, err := NewFileReader(rootDir+"/fixtures/bad_header.csv", ',', '"')
 	require.NoError(t, err)
 
 	_, err = csvReader.Header()
@@ -59,7 +59,7 @@ func TestReadHeaderRowAlreadyRead(t *testing.T) {
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
 
-	csvReader, err := NewCsvReader(rootDir+"/fixtures/two_rows.csv", ',', '"')
+	csvReader, err := NewFileReader(rootDir+"/fixtures/two_rows.csv", ',', '"')
 	require.NoError(t, err)
 
 	csvReader.Read()
@@ -76,7 +76,7 @@ func TestReadHeaderEmptyFile(t *testing.T) {
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
 
-	csvReader, err := NewCsvReader(rootDir+"/fixtures/empty.csv", ',', '"')
+	csvReader, err := NewFileReader(rootDir+"/fixtures/empty.csv", ',', '"')
 	require.NoError(t, err)
 
 	_, err = csvReader.Header()
@@ -93,13 +93,13 @@ func TestReadCsv(t *testing.T) {
 	for _, testData := range getReadCsvTestData() {
 		var rows []string
 
-		csvReader, err := NewCsvReader(rootDir+"/fixtures/"+testData.csvPath, ',', '"')
+		csvReader, err := NewFileReader(rootDir+"/fixtures/"+testData.csvPath, ',', '"')
 		require.NoError(t, err)
 
 		for csvReader.Read() {
 			rows = append(rows, string(csvReader.Bytes()))
 		}
-		assert.Equal(t, testData.expectedErr, csvReader.Err(), testData.csvPath)
+		assert.Equal(t, testData.expectedErr, csvReader.Close(), testData.csvPath)
 		assert.Equal(t, testData.expectedRows, rows, testData.csvPath)
 	}
 }
