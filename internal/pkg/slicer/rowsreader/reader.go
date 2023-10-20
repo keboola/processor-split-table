@@ -25,6 +25,7 @@ const (
 // Therefore, this own/fast implementation.
 type CSVReader struct {
 	closers       []io.Closer
+	slicedInput   bool
 	path          string
 	rowNumber     uint64
 	slicesCounter *uint32
@@ -96,14 +97,14 @@ func NewSlicesReader(dirPath string, delimiter byte, enclosure byte) (*CSVReader
 		}
 	}()
 
-	return newCSVReader(pipeReader, []io.Closer{pipeReader}, &slicesCounter, dirPath, delimiter, enclosure)
+	return newCSVReader(pipeReader, []io.Closer{pipeReader}, &slicesCounter, true, dirPath, delimiter, enclosure)
 }
 
 // NewFileReader creates the CSVReader for a single CSV file.
 func NewFileReader(filePath string, delimiter byte, enclosure byte) (*CSVReader, error) {
 	slicesCounter := uint32(1)
 	if reader, closers, err := openCSVSlice(filePath); err == nil {
-		return newCSVReader(reader, closers, &slicesCounter, filePath, delimiter, enclosure)
+		return newCSVReader(reader, closers, &slicesCounter, false, filePath, delimiter, enclosure)
 	} else {
 		return nil, err
 	}
@@ -134,7 +135,7 @@ func openCSVSlice(filePath string) (reader io.Reader, closers []io.Closer, err e
 	return readCloser, closers, nil
 }
 
-func newCSVReader(reader io.Reader, closers []io.Closer, slicesCounter *uint32, path string, delimiter byte, enclosure byte) (*CSVReader, error) {
+func newCSVReader(reader io.Reader, closers []io.Closer, slicesCounter *uint32, slicedInput bool, path string, delimiter byte, enclosure byte) (*CSVReader, error) {
 	// Create scanner with custom split function
 	buffer := make([]byte, StartTokenBufferSize)
 	scanner := bufio.NewScanner(reader)
@@ -142,6 +143,7 @@ func newCSVReader(reader io.Reader, closers []io.Closer, slicesCounter *uint32, 
 	scanner.Buffer(buffer, MaxTokenBufferSize)
 	return &CSVReader{
 		closers:       closers,
+		slicedInput:   slicedInput,
 		path:          path,
 		slicesCounter: slicesCounter,
 		scanner:       scanner,
@@ -190,10 +192,18 @@ func (r *CSVReader) Slices() uint32 {
 }
 
 func (r *CSVReader) Header() ([]string, error) {
+	// The method can be used only with non-sliced input
+	if r.slicedInput {
+		return nil, fmt.Errorf(
+			`the header cannot be read from the sliced file "%s", the header should be present in the manifest`,
+			filepath.Base(r.path),
+		)
+	}
+
 	// Header can only be read if no row has been read yet
 	if r.rowNumber != 0 {
 		return nil, fmt.Errorf(
-			"the header cannot be read, other lines have already been read from CSV \"%s\"",
+			`the header cannot be read, other lines have already been read from CSV "%s"`,
 			filepath.Base(r.path),
 		)
 	}
