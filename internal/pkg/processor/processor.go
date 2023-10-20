@@ -62,44 +62,29 @@ func Run(logger log.Logger) error {
 
 	// Process found nodes
 	for _, node := range nodes {
+		var err error
 		switch node.FileType {
 		case finder.CsvTableSingle:
-			// Single file CSV tables -> split
-			if err := slicer.SliceTable(logger, tableDefinition(cfg, node, inputDir, outputDir)); err != nil {
-				return err
-			}
-		case finder.Directory:
-			if err := utils.Mkdir(filepath.Join(outputDir, node.RelativePath)); err != nil {
-				return err
-			}
+			// Slice single CSV file
+			err = slicer.SliceTable(logger, tableDefinition(cfg, node, inputDir, outputDir))
 		case finder.CsvTableSliced:
-			// Already sliced tables are copied from in -> out
-			table := tableDefinition(cfg, node, inputDir, outputDir)
-			logger.Infof("Copying already sliced table \"%s\".", table.Name)
-			if err := utils.CopyRecursive(table.InPath, table.OutPath); err != nil {
-				return err
-			}
-			if found, err := utils.FileExists(table.InManifestPath); err != nil {
-				return err
-			} else if found {
-				if err := utils.CopyRecursive(table.InManifestPath, table.OutManifestPath); err != nil {
-					return err
-				}
-			}
-
+			// Re-slice sliced CSV table
+			err = slicer.SliceTable(logger, tableDefinition(cfg, node, inputDir, outputDir))
+		case finder.Directory:
+			err = utils.Mkdir(filepath.Join(outputDir, node.RelativePath))
 		case finder.File:
 			// Files are copied from in -> out
 			logger.Infof("Copying \"%s\".", node.RelativePath)
-			err := utils.CopyRecursive(
+			err = utils.CopyRecursive(
 				filepath.Join(inputDir, node.RelativePath),
 				filepath.Join(outputDir, node.RelativePath),
 			)
-			if err != nil {
-				return err
-			}
-
 		default:
-			return fmt.Errorf("unexpected FileType \"%v\"", node.FileType)
+			err = fmt.Errorf("unexpected FileType \"%v\"", node.FileType)
+		}
+
+		if err != nil {
+			return err
 		}
 	}
 
