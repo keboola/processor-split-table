@@ -46,14 +46,14 @@ func FileSize(path string) (uint64, error) {
 	return uint64(fi.Size()), nil
 }
 
-func DirSize(path string) (uint64, error) {
-	var size uint64
+func DirSize(path string) (int64, error) {
+	var size int64
 	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		if !info.IsDir() {
-			size += uint64(info.Size())
+			size += info.Size()
 		}
 		return nil
 	})
