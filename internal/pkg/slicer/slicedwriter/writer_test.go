@@ -40,8 +40,7 @@ func TestNewSlicedWriter(t *testing.T) {
 	assert.Equal(t, tempDir, w.outPath)
 	assert.Equal(t, uint32(1), w.sliceNumber)          // <<<<<<
 	assert.Equal(t, tempDir+"/part0001", w.slice.path) // <<<<<<
-	assert.NotNil(t, w.slice.file)
-	assert.NotNil(t, w.slice.writer)
+	assert.NotNil(t, w.slice.out)
 	assert.Equal(t, uint64(0), w.slice.rows)
 	assert.Equal(t, uint64(0), w.slice.rows)
 	assert.Equal(t, uint64(0), w.allRows)
@@ -69,8 +68,7 @@ func TestCreateNextSlice(t *testing.T) {
 	assert.Equal(t, tempDir, w.outPath)
 	assert.Equal(t, uint32(2), w.sliceNumber)          // <<<<<<
 	assert.Equal(t, tempDir+"/part0002", w.slice.path) // <<<<<<
-	assert.NotNil(t, w.slice.file)
-	assert.NotNil(t, w.slice.writer)
+	assert.NotNil(t, w.slice.out)
 	assert.Equal(t, uint64(0), w.slice.rows)
 	assert.Equal(t, uint64(0), w.slice.rows)
 	assert.Equal(t, uint64(0), w.allRows)
@@ -127,7 +125,7 @@ func TestIsSpaceForNextRowRows(t *testing.T) {
 	// Assert
 	assert.True(t, w.slice.IsSpaceForNextRow(123))
 	assert.True(t, w.slice.IsSpaceForNextRow(123))
-	w.slice.config.RowsPerSlice = 5 // <<<<<< no row left
+	w.slice.writer.config.RowsPerSlice = 5 // <<<<<< no row left
 	assert.False(t, w.slice.IsSpaceForNextRow(123))
 	assert.False(t, w.slice.IsSpaceForNextRow(123))
 }
