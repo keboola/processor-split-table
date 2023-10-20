@@ -1,0 +1,1 @@
+Error: the manifest "*/in/tables/table.csv.manifest" has no columns, columns are required for the sliced table
