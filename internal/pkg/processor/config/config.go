@@ -1,3 +1,4 @@
+// Package config provides processor configuration.
 package config
 
 import (

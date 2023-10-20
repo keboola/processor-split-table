@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/keboola/processor-split-table/internal/pkg/csv/columnsparser"
 	"github.com/keboola/processor-split-table/internal/pkg/kbc"
+	"github.com/keboola/processor-split-table/internal/pkg/slicer/columnsparser"
 )
 
 const (

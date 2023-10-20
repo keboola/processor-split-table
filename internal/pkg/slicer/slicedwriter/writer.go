@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/keboola/processor-split-table/internal/pkg/config"
+	"github.com/keboola/processor-split-table/internal/pkg/processor/config"
 )
 
 // SlicedWriter writes CSV to a sliced table defined by dirPath.

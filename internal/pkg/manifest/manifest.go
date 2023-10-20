@@ -1,3 +1,4 @@
+// Package manifest provides table manifest reading and writing.
 package manifest
 
 import (

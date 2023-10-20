@@ -9,8 +9,8 @@ import (
 
 	gzip "github.com/klauspost/pgzip"
 
-	"github.com/keboola/processor-split-table/internal/pkg/config"
 	"github.com/keboola/processor-split-table/internal/pkg/kbc"
+	"github.com/keboola/processor-split-table/internal/pkg/processor/config"
 )
 
 const (

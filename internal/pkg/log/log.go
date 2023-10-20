@@ -1,3 +1,5 @@
+// Package log provides logger compatible with components Component Interface.
+// https://developers.keboola.com/extend/common-interface/
 package log
 
 import (
