@@ -248,7 +248,7 @@ func unGzipAllInDir(t *testing.T, dir string) {
 			return entryErr
 		}
 
-		if !d.IsDir() && strings.HasSuffix(path, ".gz") {
+		if !d.IsDir() && strings.HasSuffix(path, kbc.GzipFileExtension) {
 			unGzipFile(t, path)
 		}
 
