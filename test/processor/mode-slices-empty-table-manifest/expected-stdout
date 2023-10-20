@@ -1,3 +1,3 @@
-Configured number of slices is 4, min 1 B per slice.
+Configured number of slices is 4, min 1B per slice.
 Slicing table "tables/empty.csv".
 Table "tables/empty.csv" sliced: in/out: 1 / 1 slices, 0B / 0B bytes, 0 rows, manifest unaffected.

@@ -1,4 +1,4 @@
-Configured max 500 MiB per slice.
+Configured max 500.0MB per slice.
 Copying "files/foo1.bar".
 Copying "files/foo2.bar".
 Copying "files/foo3.csv".

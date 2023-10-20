@@ -1,3 +1,3 @@
-Configured max 30 B per slice.
+Configured max 30B per slice.
 Slicing table "tables/tenRows.csv".
 Table "tables/tenRows.csv" sliced: in/out: 6 / 4 slices, 101B / 101B bytes, 10 rows, manifest unaffected.
