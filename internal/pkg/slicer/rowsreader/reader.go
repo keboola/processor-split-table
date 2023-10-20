@@ -4,14 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/klauspost/pgzip"
-
 	"github.com/keboola/processor-split-table/internal/pkg/kbc"
+	"github.com/keboola/processor-split-table/internal/pkg/pool"
+	"github.com/keboola/processor-split-table/internal/pkg/slicer/closer"
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/columnsparser"
 )
 
@@ -20,145 +19,63 @@ const (
 	MaxTokenBufferSize   = 50 * 1024 * 1024 // 50MB, max size of buffer -> max size of one row
 )
 
-// CSVReader reads rows from the CSV table.
+// Reader reads rows from the CSV table.
 // When slicing, we do not need to decode the individual columns, we just need to reliably determine the rows.
 // Therefore, this own/fast implementation.
-type CSVReader struct {
-	closers       []io.Closer
-	slicedInput   bool
-	path          string
-	rowNumber     uint64
-	slicesCounter *uint32
-	scanner       *bufio.Scanner
-	delimiter     byte
-	enclosure     byte
+type Reader struct {
+	path      string
+	slices    []string
+	sliced    bool
+	delimiter byte
+	enclosure byte
+
+	rowCounter uint64
+
+	closer      io.Closer
+	scanner     *bufio.Scanner
+	gzipReaders *pool.GZIPReaderPool
 }
 
-// NewSlicesReader creates the CSVReader for a sliced CSV table.
-func NewSlicesReader(dirPath string, delimiter byte, enclosure byte) (*CSVReader, error) {
-	// Count input slices in the WalkDir
-	var slicesCounter uint32
-
-	// Stream slices to the pipe
-	pipeReader, pipeWriter := io.Pipe()
-	go func() {
-		// Iterate all slices
-		err := filepath.WalkDir(dirPath, func(path string, d fs.DirEntry, walkErr error) (err error) {
-			// Stop on error
-			if walkErr != nil {
-				return err
-			}
-
-			// Skip top dir
-			if path == dirPath {
-				return nil
-			}
-
-			// Handle unexpected subdirectory
-			if d.IsDir() {
-				return fmt.Errorf(`unexpected directory "%s"`, path)
-			}
-
-			// Defer: close all readers in the chain, after the slice is processed
-			var closers []io.Closer
-			defer func() {
-				for i := len(closers) - 1; i >= 0; i-- {
-					if closeErr := closers[i].Close(); closeErr != nil {
-						if err == nil {
-							err = closeErr
-						}
-					}
-				}
-			}()
-
-			// Open the slice
-			slicesCounter++
-			sliceReader, newClosers, err := openCSVSlice(path)
-			if err == nil {
-				closers = append(closers, newClosers...)
-			} else {
-				return err
-			}
-
-			// Stream data to the pipe
-			if _, err = io.Copy(pipeWriter, sliceReader); err != nil {
-				return err
-			}
-
-			// Continue to the next slice, if any
-			return nil
-		})
-
-		// Send WalkDir error to the reading side
-		if err == nil {
-			_ = pipeWriter.Close()
-		} else {
-			_ = pipeWriter.CloseWithError(fmt.Errorf(`error when iterating slices in "%s": %w`, dirPath, err))
-		}
-	}()
-
-	return newCSVReader(pipeReader, []io.Closer{pipeReader}, &slicesCounter, true, dirPath, delimiter, enclosure)
+// NewSlicesReader creates the Reader for a sliced CSV table.
+func NewSlicesReader(path string, slices kbc.Slices, delimiter byte, enclosure byte) (*Reader, error) {
+	return newReader(path, slices.Paths(), true, delimiter, enclosure)
 }
 
-// NewFileReader creates the CSVReader for a single CSV file.
-func NewFileReader(filePath string, delimiter byte, enclosure byte) (*CSVReader, error) {
-	slicesCounter := uint32(1)
-	if reader, closers, err := openCSVSlice(filePath); err == nil {
-		return newCSVReader(reader, closers, &slicesCounter, false, filePath, delimiter, enclosure)
-	} else {
-		return nil, err
-	}
+// NewFileReader creates the Reader for a single CSV file.
+// It is special case of the slices reader with only one slice.
+func NewFileReader(path string, delimiter byte, enclosure byte) (*Reader, error) {
+	return newReader(path, []string{path}, false, delimiter, enclosure)
 }
 
-// openCSVSlice opens a CSV slice.
-func openCSVSlice(filePath string) (reader io.Reader, closers []io.Closer, err error) {
-	var readCloser io.ReadCloser
-
-	// Open the file
-	readCloser, err = os.OpenFile(filePath, os.O_RDONLY, 0)
-	if err == nil {
-		closers = append(closers, readCloser)
-	} else {
-		return nil, closers, err
+func newReader(path string, slices []string, sliced bool, delimiter byte, enclosure byte) (*Reader, error) {
+	reader := &Reader{
+		path:        path,
+		slices:      slices,
+		delimiter:   delimiter,
+		enclosure:   enclosure,
+		sliced:      sliced,
+		gzipReaders: pool.GZIPReaders(),
 	}
 
-	// Decompress the file
-	if strings.HasSuffix(filePath, kbc.GzipFileExtension) {
-		readCloser, err = pgzip.NewReader(readCloser)
-		if err == nil {
-			closers = append(closers, readCloser)
-		} else {
-			return nil, closers, err
-		}
-	}
+	// Create pipe to merge content of the slices
+	pipeOut, pipeIn := io.Pipe()
+	reader.closer = pipeOut
+	go reader.readSlicesTo(pipeIn)
 
-	return readCloser, closers, nil
-}
-
-func newCSVReader(reader io.Reader, closers []io.Closer, slicesCounter *uint32, slicedInput bool, path string, delimiter byte, enclosure byte) (*CSVReader, error) {
 	// Create scanner with custom split function
-	buffer := make([]byte, StartTokenBufferSize)
-	scanner := bufio.NewScanner(reader)
-	scanner.Split(getSplitRowsFunc(enclosure))
-	scanner.Buffer(buffer, MaxTokenBufferSize)
-	return &CSVReader{
-		closers:       closers,
-		slicedInput:   slicedInput,
-		path:          path,
-		slicesCounter: slicesCounter,
-		scanner:       scanner,
-		delimiter:     delimiter,
-		enclosure:     enclosure,
-	}, nil
+	reader.scanner = bufio.NewScanner(pipeOut)
+	reader.scanner.Split(getSplitRowsFunc(enclosure))
+	reader.scanner.Buffer(make([]byte, StartTokenBufferSize), MaxTokenBufferSize)
+	return reader, nil
 }
 
-func (r *CSVReader) Slices() uint32 {
-	return *r.slicesCounter
+func (r *Reader) Slices() uint32 {
+	return uint32(len(r.slices))
 }
 
-func (r *CSVReader) Header() ([]string, error) {
+func (r *Reader) Header() ([]string, error) {
 	// The method can be used only with non-sliced input
-	if r.slicedInput {
+	if r.sliced {
 		return nil, fmt.Errorf(
 			`the header cannot be read from the sliced file "%s", the header should be present in the manifest`,
 			filepath.Base(r.path),
@@ -166,7 +83,7 @@ func (r *CSVReader) Header() ([]string, error) {
 	}
 
 	// Header can only be read if no row has been read yet
-	if r.rowNumber != 0 {
+	if r.rowCounter != 0 {
 		return nil, fmt.Errorf(
 			`the header cannot be read, other lines have already been read from CSV "%s"`,
 			filepath.Base(r.path),
@@ -179,9 +96,7 @@ func (r *CSVReader) Header() ([]string, error) {
 	}
 
 	// Parse columns
-	header := r.Bytes()
-	p := columnsparser.NewParser(r.delimiter, r.enclosure)
-	columns, err := p.Parse(header)
+	columns, err := columnsparser.NewParser(r.delimiter, r.enclosure).Parse(r.Bytes())
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse CSV header: %w", err)
 	}
@@ -189,31 +104,79 @@ func (r *CSVReader) Header() ([]string, error) {
 	return columns, nil
 }
 
-func (r *CSVReader) Read() bool {
+func (r *Reader) Read() bool {
 	ok := r.scanner.Scan()
 	if ok {
-		r.rowNumber++
+		r.rowCounter++
 	}
 
 	return ok
 }
 
-func (r *CSVReader) Bytes() []byte {
+func (r *Reader) Bytes() []byte {
 	return r.scanner.Bytes()
 }
 
-func (r *CSVReader) Close() (err error) {
-	for i := len(r.closers) - 1; i >= 0; i-- {
-		if closeErr := r.closers[i].Close(); closeErr != nil {
+func (r *Reader) Close() error {
+	if err := r.closer.Close(); err != nil {
+		return err
+	}
+
+	if err := r.scanner.Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Reader) readSlicesTo(pipeIn *io.PipeWriter) {
+	var err error
+	for _, path := range r.slices {
+		err = r.readSlice(path, pipeIn)
+		if err != nil {
+			break
+		}
+	}
+
+	// Note: error is processed on the reading side
+	_ = pipeIn.CloseWithError(err)
+}
+
+func (r *Reader) readSlice(path string, pipeIn *io.PipeWriter) (err error) {
+	// Defer: close all readers in the chain, after the slice is processed
+	var closers closer.Closers
+	defer func() {
+		if closeErr := closers.Close(); closeErr != nil {
 			if err == nil {
 				err = closeErr
 			}
 		}
+	}()
+
+	// Open the file
+	var sliceReader io.Reader
+	if file, err := os.OpenFile(path, os.O_RDONLY, 0); err == nil {
+		sliceReader = file
+		closers.Append(func() error {
+			return file.Close()
+		})
+	} else {
+		return err
 	}
 
-	if scannerErr := r.scanner.Err(); scannerErr != nil {
-		err = scannerErr
+	// Add decompression
+	if strings.HasSuffix(path, kbc.GzipFileExtension) {
+		if gzipReader, err := r.gzipReaders.ReaderFrom(sliceReader); err == nil {
+			sliceReader = gzipReader
+			closers.Append(func() error {
+				return gzipReader.Close()
+			})
+		} else {
+			return err
+		}
 	}
 
+	// Stream data to the pipe
+	_, err = io.Copy(pipeIn, sliceReader)
 	return err
 }

@@ -7,6 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/keboola/processor-split-table/internal/pkg/kbc"
 )
 
 type testDataForFunc struct {
@@ -91,7 +93,11 @@ func TestReadHeaderSlicedFile(t *testing.T) {
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
 
-	csvReader, err := NewSlicesReader(filepath.Join(rootDir, "fixtures", "sliced.csv"), ',', '"')
+	path := filepath.Join(rootDir, "fixtures", "sliced.csv")
+	slices, err := kbc.FindSlices(path)
+	require.NoError(t, err)
+
+	csvReader, err := NewSlicesReader(path, slices, ',', '"')
 	require.NoError(t, err)
 
 	_, err = csvReader.Header()
