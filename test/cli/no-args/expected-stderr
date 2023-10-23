@@ -1,0 +1,5 @@
+Error: configuration is not valid:
+- table-name is a required flag
+- table-input-path is a required flag
+- table-output-path is a required flag
+- table-output-manifest-path is a required flag
