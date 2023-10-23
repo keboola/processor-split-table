@@ -39,7 +39,9 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 
 	// Get input type
 	stat, err := os.Stat(table.InPath)
-	if err != nil {
+	if errors.Is(err, os.ErrNotExist) {
+		return kbc.UserErrorf(`input table "%s" not found`, table.InPath)
+	} else if err != nil {
 		return err
 	}
 	slicedInput := stat.IsDir()
