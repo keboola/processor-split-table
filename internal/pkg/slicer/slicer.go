@@ -29,8 +29,6 @@ type Table struct {
 }
 
 func SliceTable(logger log.Logger, table Table) (err error) {
-	logger.Infof("Slicing table \"%s\".", table.TableName)
-
 	// Validate
 	val := validator.New()
 	if err := val.Struct(table); err != nil {
@@ -61,6 +59,7 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 	}
 
 	// Create target dir
+	logger.Infof("Slicing table \"%s\".", table.Name)
 	if err := utils.Mkdir(table.OutPath); err != nil {
 		return err
 	}
