@@ -2,6 +2,7 @@
 package slicer
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -19,16 +20,16 @@ import (
 )
 
 type Table struct {
-	config.Config
-	Name            string `validate:"required"`
-	InPath          string `validate:"required"`
-	InManifestPath  string
-	OutPath         string `validate:"required"`
-	OutManifestPath string `validate:"required"`
+	config.Config   `json:"config" mapstructure:",squash"`
+	Name            string `validate:"required" json:"name"  mapstructure:"table-name"`
+	InPath          string `validate:"required"  json:"inPath" mapstructure:"table-input-path"`
+	InManifestPath  string `json:"inManifestPath"  mapstructure:"table-input-manifest-path"`
+	OutPath         string `validate:"required" json:"outPath" mapstructure:"table-output-path"`
+	OutManifestPath string `validate:"required" json:"outManifestPath" mapstructure:"table-output-manifest-path"`
 }
 
 func SliceTable(logger log.Logger, table Table) (err error) {
-	logger.Infof("Slicing table \"%s\".", table.Name)
+	logger.Infof("Slicing table \"%s\".", table.TableName)
 
 	// Validate
 	val := validator.New()
