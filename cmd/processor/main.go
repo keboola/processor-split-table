@@ -61,7 +61,7 @@ func exitWithError(logger log.Logger, err any) {
 }
 
 func startCPUProfileIfFlagSet() (bool, error) {
-	ptr := flag.String("cpuprofile", "", "write cpu profile to file")
+	ptr := flag.String("cpuprofile", "", "write cpu profile to the specified file")
 	flag.Parse()
 	if *ptr != "" {
 		f, err := os.Create(*ptr)
