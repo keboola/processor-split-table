@@ -1,0 +1,4 @@
+--table-name mytable
+--table-input-path table.csv
+--table-output-path table.csv
+--table-output-manifest-path table.csv.manifest
