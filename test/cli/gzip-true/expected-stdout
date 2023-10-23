@@ -1,0 +1,2 @@
+Slicing table "mytable".
+Table "mytable" sliced: in/out: 1 / 1 slices, *B / *B bytes, 3 rows, manifest unaffected.
