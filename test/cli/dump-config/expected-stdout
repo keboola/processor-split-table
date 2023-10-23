@@ -1,0 +1,25 @@
+Configuration: {
+  "table": {
+    "config": {
+      "mode": "bytes",
+      "bytesPerSlice": "500MB",
+      "rowsPerSlice": 1000000,
+      "numberOfSlices": 60,
+      "minBytesPerSlice": "4MB",
+      "gzip": true,
+      "gzipLevel": 5,
+      "gzipConcurrency": 0,
+      "gzipBlockSize": "2MB",
+      "bufferSize": "20MB"
+    },
+    "name": "mytable",
+    "inPath": "*/in/table.csv",
+    "inManifestPath": "",
+    "outPath": "*/out/table.csv",
+    "outManifestPath": "*/out/table.csv.manifest"
+  },
+  "dumpConfig": true,
+  "cpuProfile": ""
+}
+Slicing table "mytable".
+Table "mytable" sliced: in/out: 1 / 1 slices, 22B / 10B bytes, 3 rows, manifest created.
