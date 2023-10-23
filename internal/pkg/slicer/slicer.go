@@ -1,10 +1,15 @@
+// Package slicer provider slicing of an input table to an output table according to the configuration.
 package slicer
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/dustin/go-humanize"
+	"github.com/go-playground/validator/v10"
 
+	"github.com/keboola/processor-split-table/internal/pkg/kbc"
 	"github.com/keboola/processor-split-table/internal/pkg/log"
 	manifestPkg "github.com/keboola/processor-split-table/internal/pkg/manifest"
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/config"
@@ -13,22 +18,63 @@ import (
 	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
-func SliceCsv(logger log.Logger, conf config.Config, relativePath string, inPath string, inManifestPath string, outPath string, outManifestPath string) (err error) {
-	logger.Infof("Slicing table \"%s\".", relativePath)
+type Table struct {
+	config.Config
+	Name            string `validate:"required"`
+	InPath          string `validate:"required"`
+	InManifestPath  string
+	OutPath         string `validate:"required"`
+	OutManifestPath string `validate:"required"`
+}
 
-	// Create target dir
-	if err := utils.Mkdir(outPath); err != nil {
-		return err
+func SliceTable(logger log.Logger, table Table) (err error) {
+	logger.Infof("Slicing table \"%s\".", table.Name)
+
+	// Validate
+	val := validator.New()
+	if err := val.Struct(table); err != nil {
+		return kbc.UserErrorf(`table definition is not valid: %w`, err)
 	}
 
-	// Get file size
-	fileSize, err := utils.FileSize(inPath)
+	// Get input type
+	stat, err := os.Stat(table.InPath)
+	if err != nil {
+		return err
+	}
+	slicedInput := stat.IsDir()
+
+	// Get input size
+	var inputSize int64
+	if slicedInput {
+		inputSize, err = utils.DirSize(table.InPath)
+		if err != nil {
+			return err
+		}
+	} else {
+		inputSize = stat.Size()
+	}
+
+	// Load manifest
+	manifest, err := manifestPkg.LoadManifest(table.InManifestPath)
 	if err != nil {
 		return err
 	}
 
+	// Check manifest, if the table is sliced
+	if slicedInput && !manifest.Exists() {
+		return kbc.UserErrorf(`the manifest "%s" not found, it is required for the sliced table`, table.InManifestPath)
+	}
+	if slicedInput && !manifest.HasColumns() {
+		return kbc.UserErrorf(`the manifest "%s" has no columns, columns are required for the sliced table`, table.InManifestPath)
+	}
+
+	// Create target dir
+	if err := utils.Mkdir(table.OutPath); err != nil {
+		return err
+	}
+
 	// Create writer
-	writer, err := slicedwriter.New(conf, fileSize, outPath)
+	writer, err := slicedwriter.New(table.Config, inputSize, table.OutPath)
 	if err != nil {
 		return err
 	}
@@ -38,20 +84,13 @@ func SliceCsv(logger log.Logger, conf config.Config, relativePath string, inPath
 		}
 	}()
 
-	// Load manifest, may not exist
-	found, err := utils.FileExists(inManifestPath)
-	if err != nil {
-		return err
-	}
-
-	createManifest := !found
-	manifest, err := manifestPkg.LoadManifest(inManifestPath)
-	if err != nil {
-		return err
-	}
-
 	// Create reader
-	reader, err := rowsreader.NewCsvReader(inPath, manifest.Delimiter(), manifest.Enclosure())
+	var reader *rowsreader.CSVReader
+	if slicedInput {
+		reader, err = rowsreader.NewSlicesReader(table.InPath, manifest.Delimiter(), manifest.Enclosure())
+	} else {
+		reader, err = rowsreader.NewFileReader(table.InPath, manifest.Delimiter(), manifest.Enclosure())
+	}
 	if err != nil {
 		return err
 	}
@@ -73,45 +112,45 @@ func SliceCsv(logger log.Logger, conf config.Config, relativePath string, inPath
 		}
 	}
 
-	// Check if no error
-	if reader.Err() != nil {
-		return fmt.Errorf("error when reading CSV \"%s\": %w", inPath, reader.Err())
+	// Close the reader
+	if err = reader.Close(); err != nil {
+		return fmt.Errorf("error when reading CSV \"%s\": %w", table.InPath, err)
 	}
 
 	// Write manifest
-	if err := manifest.WriteTo(outManifestPath); err != nil {
+	if err := manifest.WriteTo(table.OutManifestPath); err != nil {
 		return err
 	}
 
-	// Log info
-	return logResult(logger, writer, relativePath, outPath, createManifest, addColumnsToManifest)
-}
-
-func logResult(logger log.Logger, w *slicedwriter.SlicedWriter, relativePath string, absPath string, createManifest bool, addColumnsToManifest bool) error {
-	msg := fmt.Sprintf(
-		"Table \"%s\" sliced, written %d slices, %s rows, total size %s",
-		relativePath,
-		w.Slices(),
-		humanize.Comma(int64(w.AllRows())),
-		humanize.IBytes(w.AlLBytes()),
-	)
-
-	if w.GzipEnabled() {
-		if dirSize, err := utils.DirSize(absPath); err == nil {
-			msg += fmt.Sprintf(", gzipped size %s", humanize.IBytes(dirSize))
+	// Get output size
+	outBytes := writer.AlLBytes()
+	if writer.GzipEnabled() {
+		if dirSize, err := utils.DirSize(table.OutPath); err == nil {
+			outBytes = uint64(dirSize)
 		} else {
 			return err
 		}
 	}
 
+	// Log statistics
+	msg := fmt.Sprintf(
+		"Table \"%s\" sliced: in/out: %d / %d slices, %s / %s bytes, %s rows",
+		table.Name,
+		reader.Slices(), writer.Slices(),
+		strings.ReplaceAll(humanize.IBytes(uint64(inputSize)), " ", ""),
+		strings.ReplaceAll(humanize.IBytes(outBytes), " ", ""),
+		humanize.Comma(int64(writer.AllRows())),
+	)
+
 	switch {
-	case createManifest:
-		msg += ", manifest created."
-	case addColumnsToManifest:
-		msg += ", columns added to manifest."
+	case !manifest.Exists():
+		msg += ", manifest created"
+	case manifest.Modified():
+		msg += ", manifest updated"
 	default:
-		msg += "."
+		msg += ", manifest unaffected"
 	}
+	msg += "."
 
 	logger.Info(msg)
 	return nil

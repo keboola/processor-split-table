@@ -1,3 +1,4 @@
+// Package config provides slicing configuration.
 package config
 
 import "fmt"

@@ -21,8 +21,10 @@ const (
 // The original content is always preserved, so it is represented as an OrderedMap.
 // There is only one setter SetColumns, it is used to move the list of columns from CSV header to the manifest.
 type Manifest struct {
-	path    string
-	content *orderedmap.OrderedMap // decoded JSON content
+	path     string
+	exists   bool
+	modified bool
+	content  *orderedmap.OrderedMap // decoded JSON content
 
 	columns   []string
 	delimiter byte
@@ -30,12 +32,12 @@ type Manifest struct {
 }
 
 func LoadManifest(path string) (*Manifest, error) {
-	content, err := loadManifestContent(path)
+	content, found, err := loadManifestContent(path)
 	if err != nil {
 		return nil, err
 	}
 
-	m := &Manifest{path: path, content: content}
+	m := &Manifest{path: path, exists: found, content: content}
 
 	// Load delimiter
 	m.delimiter = DefaultDelimiter
@@ -90,6 +92,14 @@ func (m *Manifest) WriteTo(path string) error {
 	return os.WriteFile(path, data, kbc.NewFilePermissions)
 }
 
+func (m *Manifest) Exists() bool {
+	return m.exists
+}
+
+func (m *Manifest) Modified() bool {
+	return m.modified
+}
+
 func (m *Manifest) HasColumns() bool {
 	if _, ok := m.content.Get("columns"); ok {
 		return true
@@ -105,6 +115,7 @@ func (m *Manifest) Columns() []string {
 func (m *Manifest) SetColumns(columns []string) {
 	m.content.Set("columns", columns)
 	m.columns = columns
+	m.modified = true
 }
 
 func (m *Manifest) Delimiter() byte {
@@ -115,24 +126,24 @@ func (m *Manifest) Enclosure() byte {
 	return m.enclosure
 }
 
-func loadManifestContent(path string) (*orderedmap.OrderedMap, error) {
-	if found, err := utils.FileExists(path); err != nil {
-		return nil, err
+func loadManifestContent(path string) (content *orderedmap.OrderedMap, found bool, err error) {
+	if found, err = utils.FileExists(path); err != nil {
+		return nil, false, err
 	} else if !found {
 		// Return empty map, file will be created
-		return orderedmap.New(), nil
+		return orderedmap.New(), false, nil
 	}
 
 	// Read file
 	contentBytes, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// Parse JSON
-	content := orderedmap.New()
+	content = orderedmap.New()
 	if err := json.Unmarshal(contentBytes, content); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// Convert columns []interface -> []string
@@ -144,9 +155,9 @@ func loadManifestContent(path string) (*orderedmap.OrderedMap, error) {
 			}
 			content.Set("columns", strings)
 		} else {
-			return nil, fmt.Errorf("unexpected type \"%T\" of the manifest \"columns\" key", val)
+			return nil, false, fmt.Errorf("unexpected type \"%T\" of the manifest \"columns\" key", val)
 		}
 	}
 
-	return content, nil
+	return content, true, nil
 }

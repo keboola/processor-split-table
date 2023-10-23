@@ -8,7 +8,10 @@ import (
 	"strings"
 )
 
-const NewFilePermissions = 0o600
+const (
+	NewFilePermissions = 0o600
+	GzipFileExtension  = ".gz"
+)
 
 type Error interface {
 	error

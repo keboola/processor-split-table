@@ -19,11 +19,11 @@ type SlicedWriter struct {
 	allBytes    uint64
 }
 
-func New(cfg config.Config, inFileSize uint64, outPath string) (*SlicedWriter, error) {
+func New(cfg config.Config, inputSize int64, outPath string) (*SlicedWriter, error) {
 	// Convert NumberOfSlices to BytesPerSlice
 	if cfg.Mode == config.ModeSlices {
 		cfg.Mode = config.ModeBytes
-		fileSize := float64(inFileSize)
+		fileSize := float64(inputSize)
 		cfg.BytesPerSlice = uint64(math.Ceil(fileSize / float64(cfg.NumberOfSlices)))
 
 		// Too small slices (a few kilobytes) can slow down upload -> check min size
