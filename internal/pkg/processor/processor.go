@@ -11,6 +11,7 @@ import (
 	"github.com/keboola/processor-split-table/internal/pkg/processor/config"
 	"github.com/keboola/processor-split-table/internal/pkg/processor/finder"
 	"github.com/keboola/processor-split-table/internal/pkg/slicer"
+	slicerConfig "github.com/keboola/processor-split-table/internal/pkg/slicer/config"
 	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
@@ -40,11 +41,11 @@ func Run(logger log.Logger) error {
 
 	// Log settings
 	switch cfg.Parameters.Mode {
-	case config.ModeBytes:
+	case slicerConfig.ModeBytes:
 		logger.Infof("Configured max %s per slice.", humanize.IBytes(cfg.Parameters.BytesPerSlice))
-	case config.ModeRows:
+	case slicerConfig.ModeRows:
 		logger.Infof("Configured max %s rows per slice.", humanize.Comma(int64(cfg.Parameters.RowsPerSlice)))
-	case config.ModeSlices:
+	case slicerConfig.ModeSlices:
 		logger.Infof(
 			"Configured number of slices is %d, min %s per slice.",
 			cfg.Parameters.NumberOfSlices,
@@ -68,7 +69,7 @@ func Run(logger log.Logger) error {
 		switch file.FileType {
 		case finder.CsvTableSingle:
 			// Single file CSV tables -> split
-			if err := slicer.SliceCsv(logger, cfg, file.RelativePath, inPath, inManifestPath, outPath, outManifestPath); err != nil {
+			if err := slicer.SliceCsv(logger, cfg.Parameters, file.RelativePath, inPath, inManifestPath, outPath, outManifestPath); err != nil {
 				return err
 			}
 		case finder.Directory:

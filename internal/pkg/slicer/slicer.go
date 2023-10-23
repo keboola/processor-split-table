@@ -7,13 +7,13 @@ import (
 
 	"github.com/keboola/processor-split-table/internal/pkg/log"
 	manifestPkg "github.com/keboola/processor-split-table/internal/pkg/manifest"
-	"github.com/keboola/processor-split-table/internal/pkg/processor/config"
+	"github.com/keboola/processor-split-table/internal/pkg/slicer/config"
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/rowsreader"
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/slicedwriter"
 	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
 
-func SliceCsv(logger log.Logger, conf *config.Config, relativePath string, inPath string, inManifestPath string, outPath string, outManifestPath string) (err error) {
+func SliceCsv(logger log.Logger, conf config.Config, relativePath string, inPath string, inManifestPath string, outPath string, outManifestPath string) (err error) {
 	logger.Infof("Slicing table \"%s\".", relativePath)
 
 	// Create target dir
@@ -28,7 +28,7 @@ func SliceCsv(logger log.Logger, conf *config.Config, relativePath string, inPat
 	}
 
 	// Create writer
-	writer, err := slicedwriter.NewSlicedWriterFromConf(conf, fileSize, outPath)
+	writer, err := slicedwriter.New(conf, fileSize, outPath)
 	if err != nil {
 		return err
 	}

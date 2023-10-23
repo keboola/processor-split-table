@@ -10,7 +10,7 @@ import (
 	gzip "github.com/klauspost/pgzip"
 
 	"github.com/keboola/processor-split-table/internal/pkg/kbc"
-	"github.com/keboola/processor-split-table/internal/pkg/processor/config"
+	"github.com/keboola/processor-split-table/internal/pkg/slicer/config"
 )
 
 const (
@@ -20,9 +20,7 @@ const (
 
 // slice writes to the one slice.
 type slice struct {
-	mode        config.Mode
-	maxBytes    uint64
-	maxRows     uint64
+	config      config.Config
 	path        string
 	file        *os.File
 	writer      io.Writer
@@ -31,7 +29,7 @@ type slice struct {
 	bytesFromGc uint64 // bytes from last garbage collector run
 }
 
-func newSlice(mode config.Mode, maxBytes uint64, maxRows uint64, gzipEnabled bool, gzipLevel int, filePath string) (*slice, error) {
+func newSlice(cfg config.Config, filePath string) (*slice, error) {
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, kbc.NewFilePermissions)
 	if err != nil {
 		return nil, err
@@ -39,8 +37,8 @@ func newSlice(mode config.Mode, maxBytes uint64, maxRows uint64, gzipEnabled boo
 
 	// Use gzip compression?
 	var writer io.Writer
-	if gzipEnabled {
-		writer, err = gzip.NewWriterLevel(file, gzipLevel)
+	if cfg.Gzip {
+		writer, err = gzip.NewWriterLevel(file, cfg.GzipLevel)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create gzip writer: %w", err)
 		}
@@ -48,17 +46,7 @@ func newSlice(mode config.Mode, maxBytes uint64, maxRows uint64, gzipEnabled boo
 		writer = bufio.NewWriterSize(file, OutBufferSize)
 	}
 
-	return &slice{
-		mode,
-		maxBytes,
-		maxRows,
-		filePath,
-		file,
-		writer,
-		0,
-		0,
-		0,
-	}, nil
+	return &slice{config: cfg, path: filePath, file: file, writer: writer}, nil
 }
 
 func (s *slice) Write(row []byte, rowLength uint64) error {
@@ -117,12 +105,12 @@ func (s *slice) IsSpaceForNextRow(rowLength uint64) bool {
 		return true
 	}
 
-	switch s.mode {
+	switch s.config.Mode {
 	case config.ModeBytes:
-		return s.bytes+rowLength <= s.maxBytes
+		return s.bytes+rowLength <= s.config.BytesPerSlice
 	case config.ModeRows:
-		return s.rows < s.maxRows
+		return s.rows < s.config.RowsPerSlice
 	default:
-		panic(fmt.Errorf("unexpected sliced writer mode \"%v\"", s.mode))
+		panic(fmt.Errorf("unexpected sliced writer mode \"%v\"", s.config.Mode))
 	}
 }
