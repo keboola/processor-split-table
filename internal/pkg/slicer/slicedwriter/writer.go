@@ -10,12 +10,6 @@ import (
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/config"
 )
 
-const (
-	// GzipBlockSize defines size of the one GZIP buffer.
-	// This size is multiplied by the number of blocks, by the configured concurrency.
-	GzipBlockSize = 2 * datasize.MB
-)
-
 // Writer writes CSV to a sliced table directory.
 // Each part is one file in the directory.
 // When maxRows/maxBytes is reached -> a new file/slice is created.
@@ -46,8 +40,8 @@ func New(cfg config.Config, inputSize datasize.ByteSize, outPath string) (*Write
 
 	w := &Writer{
 		config:        cfg,
-		bufferWriters: pool.BufferedWriters(OutBufferSize),
-		gzipWriters:   pool.GZIPWriters(cfg.GzipLevel, GzipBlockSize, 0),
+		bufferWriters: pool.BufferedWriters(cfg.BufferSize),
+		gzipWriters:   pool.GZIPWriters(cfg.GzipLevel, cfg.GzipBlockSize, int(cfg.GzipConcurrency)),
 		outPath:       outPath,
 	}
 
