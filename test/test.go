@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/juju/fslock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/keboola/processor-split-table/internal/pkg/kbc"
@@ -78,6 +79,14 @@ func GetFileContent(t *testing.T, path string, def string) (exists bool, content
 func CompileBinary(t *testing.T, entrypointDir string, tempDir string) string {
 	t.Helper()
 
+	// Prevent parallel compilation, it doesn't work with the Go cache is empty
+	l := fslock.New(filepath.Join(os.TempDir(), "split-processor-compilation.lock"))
+	require.NoError(t, l.Lock())
+	defer func() {
+		require.NoError(t, l.Unlock())
+	}()
+
+	// Run build command
 	var stdout, stderr bytes.Buffer
 	binaryPath := tempDir + "/bin_data_dir_tests"
 	cmd := exec.Command("go", "build", "-o", binaryPath, entrypointDir)
