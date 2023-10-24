@@ -25,6 +25,11 @@ The `slicer` CLI slices and optionally compresses the input table.
 
 You can download the CLI from the [GitHub Releases](https://github.com/keboola/processor-split-table/releases).
 
+### Logging
+
+- `debug` and `info` messages are logged to the `stdout`.
+- `warn` and `error` messages are logged to the `stderr`.
+
 ### Modes
 
 - There are the following modes for slicing the input table.
