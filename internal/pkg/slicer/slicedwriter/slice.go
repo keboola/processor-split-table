@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 
 	"github.com/c2h5oh/datasize"
 
@@ -14,8 +13,7 @@ import (
 )
 
 const (
-	OutBufferSize = 20 * 1024 * 1024  // 20 MB
-	GcMaxBytes    = 500 * datasize.MB // run garbage collector each 500 MB written
+	OutBufferSize = 20 * 1024 * 1024 // 20 MB
 )
 
 // slice writes to the one slice.
@@ -84,25 +82,11 @@ func (s *slice) Write(row []byte, rowLength uint64) error {
 	s.rows++
 	s.bytes += datasize.ByteSize(rowLength)
 	s.bytesFromGc += datasize.ByteSize(rowLength)
-
-	// Run garbage collector each GcMaxBytes
-	if s.bytesFromGc > GcMaxBytes {
-		runtime.GC()
-		s.bytesFromGc = 0
-	}
-
 	return nil
 }
 
 func (s *slice) Close() error {
-	if err := s.closers.Close(); err != nil {
-		return err
-	}
-
-	// Go runtime doesn't know maximum memory in Kubernetes/Docker, so we clean-up after each slice.
-	runtime.GC()
-
-	return nil
+	return s.closers.Close()
 }
 
 func (s *slice) IsSpaceForNextRow(rowLength uint64) bool {
