@@ -6,22 +6,31 @@ import (
 
 	"github.com/c2h5oh/datasize"
 
+	"github.com/keboola/processor-split-table/internal/pkg/pool"
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/config"
 )
 
-// SlicedWriter writes CSV to a sliced table defined by outPath.
-// Each part is one file in outPath.
-// When maxRows/maxBytes is reached -> a new file/part is created.
-type SlicedWriter struct {
-	config      config.Config
-	outPath     string
-	sliceNumber uint32
-	slice       *slice
-	allRows     uint64
-	allBytes    datasize.ByteSize
+const (
+	// GzipBlockSize defines size of the one GZIP buffer.
+	// This size is multiplied by the number of blocks, by the configured concurrency.
+	GzipBlockSize = 2 * datasize.MB
+)
+
+// Writer writes CSV to a sliced table directory.
+// Each part is one file in the directory.
+// When maxRows/maxBytes is reached -> a new file/slice is created.
+type Writer struct {
+	config        config.Config
+	bufferWriters *pool.BufferWriterPool
+	gzipWriters   *pool.GZIPWriterPool
+	outPath       string
+	sliceNumber   uint32
+	slice         *slice
+	allRows       uint64
+	allBytes      datasize.ByteSize
 }
 
-func New(cfg config.Config, inputSize datasize.ByteSize, outPath string) (*SlicedWriter, error) {
+func New(cfg config.Config, inputSize datasize.ByteSize, outPath string) (*Writer, error) {
 	// Convert NumberOfSlices to BytesPerSlice
 	if cfg.Mode == config.ModeSlices {
 		cfg.Mode = config.ModeBytes
@@ -35,7 +44,12 @@ func New(cfg config.Config, inputSize datasize.ByteSize, outPath string) (*Slice
 		cfg.NumberOfSlices = 0 // disabled
 	}
 
-	w := &SlicedWriter{config: cfg, outPath: outPath}
+	w := &Writer{
+		config:        cfg,
+		bufferWriters: pool.BufferedWriters(OutBufferSize),
+		gzipWriters:   pool.GZIPWriters(cfg.GzipLevel, GzipBlockSize, 0),
+		outPath:       outPath,
+	}
 
 	// Open first slice
 	if err := w.createNextSlice(); err != nil {
@@ -45,7 +59,7 @@ func New(cfg config.Config, inputSize datasize.ByteSize, outPath string) (*Slice
 	return w, nil
 }
 
-func (w *SlicedWriter) Write(row []byte) error {
+func (w *Writer) Write(row []byte) error {
 	rowLength := uint64(len(row))
 	if !w.IsSpaceForNextRowInSlice(rowLength) {
 		if err := w.createNextSlice(); err != nil {
@@ -62,11 +76,11 @@ func (w *SlicedWriter) Write(row []byte) error {
 	return nil
 }
 
-func (w *SlicedWriter) Close() error {
+func (w *Writer) Close() error {
 	return w.slice.Close()
 }
 
-func (w *SlicedWriter) IsSpaceForNextRowInSlice(rowLength uint64) bool {
+func (w *Writer) IsSpaceForNextRowInSlice(rowLength uint64) bool {
 	// Last slice, do not overflow
 	if w.config.NumberOfSlices > 0 && w.config.NumberOfSlices == w.sliceNumber {
 		return true
@@ -75,23 +89,23 @@ func (w *SlicedWriter) IsSpaceForNextRowInSlice(rowLength uint64) bool {
 	return w.slice.IsSpaceForNextRow(rowLength)
 }
 
-func (w *SlicedWriter) GzipEnabled() bool {
+func (w *Writer) GzipEnabled() bool {
 	return w.config.Gzip
 }
 
-func (w *SlicedWriter) Slices() uint32 {
+func (w *Writer) Slices() uint32 {
 	return w.sliceNumber
 }
 
-func (w *SlicedWriter) AllRows() uint64 {
+func (w *Writer) AllRows() uint64 {
 	return w.allRows
 }
 
-func (w *SlicedWriter) AlLBytes() datasize.ByteSize {
+func (w *Writer) AlLBytes() datasize.ByteSize {
 	return w.allBytes
 }
 
-func (w *SlicedWriter) createNextSlice() error {
+func (w *Writer) createNextSlice() error {
 	if w.slice != nil {
 		if err := w.slice.Close(); err != nil {
 			return err
@@ -101,7 +115,7 @@ func (w *SlicedWriter) createNextSlice() error {
 	w.sliceNumber++
 	path := getSlicePath(w.outPath, w.sliceNumber, w.config.Gzip)
 
-	s, err := newSlice(w.config, path)
+	s, err := w.newSlice(path)
 	if err != nil {
 		return err
 	}

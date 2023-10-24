@@ -43,17 +43,6 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 	}
 	slicedInput := stat.IsDir()
 
-	// Get input size
-	var inputSize datasize.ByteSize
-	if slicedInput {
-		inputSize, err = utils.DirSize(table.InPath)
-		if err != nil {
-			return err
-		}
-	} else {
-		inputSize = datasize.ByteSize(stat.Size())
-	}
-
 	// Load manifest
 	manifest, err := manifestPkg.LoadManifest(table.InManifestPath)
 	if err != nil {
@@ -73,6 +62,29 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 		return err
 	}
 
+	// Create reader
+	var inputSize datasize.ByteSize
+	var reader *rowsreader.Reader
+	if slicedInput {
+		var slices kbc.Slices
+		if slices, err = kbc.FindSlices(table.InPath); err != nil {
+			return err
+		}
+		if inputSize, err = slices.Size(); err != nil {
+			return err
+		}
+		reader, err = rowsreader.NewSlicesReader(table.InPath, slices, manifest.Delimiter(), manifest.Enclosure())
+		if err != nil {
+			return err
+		}
+	} else {
+		inputSize = datasize.ByteSize(stat.Size())
+		reader, err = rowsreader.NewFileReader(table.InPath, manifest.Delimiter(), manifest.Enclosure())
+		if err != nil {
+			return err
+		}
+	}
+
 	// Create writer
 	writer, err := slicedwriter.New(table.Config, inputSize, table.OutPath)
 	if err != nil {
@@ -83,17 +95,6 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 			err = closeErr
 		}
 	}()
-
-	// Create reader
-	var reader *rowsreader.CSVReader
-	if slicedInput {
-		reader, err = rowsreader.NewSlicesReader(table.InPath, manifest.Delimiter(), manifest.Enclosure())
-	} else {
-		reader, err = rowsreader.NewFileReader(table.InPath, manifest.Delimiter(), manifest.Enclosure())
-	}
-	if err != nil {
-		return err
-	}
 
 	// If manifest without defined columns -> store first row/header to manifest "columns" key
 	addColumnsToManifest := !manifest.HasColumns()

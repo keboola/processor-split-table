@@ -7,6 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/keboola/processor-split-table/internal/pkg/kbc"
 )
 
 type testDataForFunc struct {
@@ -91,7 +93,11 @@ func TestReadHeaderSlicedFile(t *testing.T) {
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
 
-	csvReader, err := NewSlicesReader(filepath.Join(rootDir, "fixtures", "sliced.csv"), ',', '"')
+	path := filepath.Join(rootDir, "fixtures", "sliced.csv")
+	slices, err := kbc.FindSlices(path)
+	require.NoError(t, err)
+
+	csvReader, err := NewSlicesReader(path, slices, ',', '"')
 	require.NoError(t, err)
 
 	_, err = csvReader.Header()
@@ -129,187 +135,6 @@ func TestSplitRowsFunc(t *testing.T) {
 		assert.Equal(t, testData.expectedAdvance, advance, testData.comment)
 		assert.Equal(t, testData.expectedToken, token, testData.comment)
 		assert.Equal(t, testData.expectedErr, err, testData.comment)
-	}
-}
-
-func getSplitRowsFuncTestData() []testDataForFunc {
-	return []testDataForFunc{
-		{
-			comment:         "Empty data -> no token",
-			data:            []byte(""),
-			atEOF:           false,
-			expectedAdvance: 0,
-			expectedToken:   nil,
-			expectedErr:     nil,
-		},
-		{
-			comment:         "Empty data at the end -> no token",
-			data:            []byte(""),
-			atEOF:           true,
-			expectedAdvance: 0,
-			expectedToken:   nil,
-			expectedErr:     nil,
-		},
-		{
-			comment:         "One row",
-			data:            []byte("abc,def\n"),
-			atEOF:           false,
-			expectedAdvance: 8,
-			expectedToken:   []byte("abc,def\n"),
-			expectedErr:     nil,
-		},
-		{
-			comment:         "One row at the end",
-			data:            []byte("abc,def\n"),
-			atEOF:           true,
-			expectedAdvance: 8,
-			expectedToken:   []byte("abc,def\n"),
-			expectedErr:     nil,
-		},
-		{
-			comment:         "Two rows -> first row parsed",
-			data:            []byte("abc,def\nfgh,xyz\n"),
-			atEOF:           false,
-			expectedAdvance: 8,
-			expectedToken:   []byte("abc,def\n"),
-			expectedErr:     nil,
-		},
-		{
-			comment:         "Two rows at the end -> first row parsed",
-			data:            []byte("abc,def\nfgh,xyz\n"),
-			atEOF:           true,
-			expectedAdvance: 8,
-			expectedToken:   []byte("abc,def\n"),
-			expectedErr:     nil,
-		},
-		{
-			comment:         "Incomplete row -> load more data",
-			data:            []byte("abc,def"),
-			atEOF:           false,
-			expectedAdvance: 0,
-			expectedToken:   nil,
-			expectedErr:     nil,
-		},
-		{
-			comment:         "Incomplete row with enclosure -> load more data",
-			data:            []byte("\"abc\",\"def\""),
-			atEOF:           false,
-			expectedAdvance: 0,
-			expectedToken:   nil,
-			expectedErr:     nil,
-		},
-		{
-			comment:         "Incomplete row at the end -> ok, last row without new line",
-			data:            []byte("abc,def"),
-			atEOF:           true,
-			expectedAdvance: 7,
-			expectedToken:   []byte("abc,def"),
-			expectedErr:     nil,
-		},
-		{
-			comment:         "Row with enclosures 1",
-			data:            []byte("\"abc\"\n"),
-			atEOF:           false,
-			expectedAdvance: 6,
-			expectedToken:   []byte("\"abc\"\n"),
-			expectedErr:     nil,
-		},
-		{
-			comment:         "Row with enclosures 2",
-			data:            []byte("\"abc\",def,\"xyz\"\n"),
-			atEOF:           false,
-			expectedAdvance: 16,
-			expectedToken:   []byte("\"abc\",def,\"xyz\"\n"),
-			expectedErr:     nil,
-		},
-		{
-			comment:         "Row with enclosures 3",
-			data:            []byte("\"abc\",\"def\",\"xyz\"\n"),
-			atEOF:           false,
-			expectedAdvance: 18,
-			expectedToken:   []byte("\"abc\",\"def\",\"xyz\"\n"),
-			expectedErr:     nil,
-		},
-		{
-			comment:         "Unfinished enclosure 1 -> load more data",
-			data:            []byte("\""),
-			atEOF:           false,
-			expectedAdvance: 0,
-			expectedToken:   nil,
-			expectedErr:     nil,
-		},
-		{
-			comment:         "Unfinished enclosure 2 -> load more data",
-			data:            []byte("\"abc\",\"def"),
-			atEOF:           false,
-			expectedAdvance: 0,
-			expectedToken:   nil,
-			expectedErr:     nil,
-		},
-		{
-			comment:         "Unfinished enclosure at the end -> return last row",
-			data:            []byte("\"abc\",\"def"),
-			atEOF:           true,
-			expectedAdvance: 10,
-			expectedToken:   []byte("\"abc\",\"def"),
-			expectedErr:     nil,
-		},
-		{
-			comment:         "Unfinished enclosure with new line 1 -> load more data",
-			data:            []byte("\"\n"),
-			atEOF:           false,
-			expectedAdvance: 0,
-			expectedToken:   nil,
-			expectedErr:     nil,
-		},
-		{
-			comment:         "Unfinished enclosure with new line 2 -> load more data",
-			data:            []byte("\"abc\n\",\"def\n"),
-			atEOF:           false,
-			expectedAdvance: 0,
-			expectedToken:   nil,
-			expectedErr:     nil,
-		},
-		{
-			comment:         "Unfinished enclosure with new line at the end -> return last row",
-			data:            []byte("\"abc\n\",\"def\n"),
-			atEOF:           true,
-			expectedAdvance: 12,
-			expectedToken:   []byte("\"abc\n\",\"def\n"),
-			expectedErr:     nil,
-		},
-		{
-			comment:         "One row with escaped new line",
-			data:            []byte("\"abc\nxyz\",\"\ndef\n\"\n"),
-			atEOF:           false,
-			expectedAdvance: 18,
-			expectedToken:   []byte("\"abc\nxyz\",\"\ndef\n\"\n"),
-			expectedErr:     nil,
-		},
-		{
-			comment:         "One row at the end with escaped new line",
-			data:            []byte("\"abc\nxyz\",\"\ndef\n\"\n"),
-			atEOF:           true,
-			expectedAdvance: 18,
-			expectedToken:   []byte("\"abc\nxyz\",\"\ndef\n\"\n"),
-			expectedErr:     nil,
-		},
-		{
-			comment:         "Two rows with escaped new line",
-			data:            []byte("\"abc\nxyz\",\"\ndef\n\"\n\"123\n\",\"456\n\""),
-			atEOF:           false,
-			expectedAdvance: 18,
-			expectedToken:   []byte("\"abc\nxyz\",\"\ndef\n\"\n"),
-			expectedErr:     nil,
-		},
-		{
-			comment:         "Two rows at the end with escaped new line",
-			data:            []byte("\"abc\nxyz\",\"\ndef\n\"\n\"123\n\",\"456\n\""),
-			atEOF:           true,
-			expectedAdvance: 18,
-			expectedToken:   []byte("\"abc\nxyz\",\"\ndef\n\"\n"),
-			expectedErr:     nil,
-		},
 	}
 }
 
