@@ -63,6 +63,7 @@ Usage of "slicer".
       --gzip-block-size string              Size of the one gzip block; allocated memory = concurrency * block size. (default "2MB")
       --gzip-concurrency uint32             Number of parallel processed gzip blocks, 0 means the number of CPU threads.
       --gzip-level int                      GZIP compression level, range: 1 best speed - 9 best compression. (default 2)
+      --memory-limit string                 Soft memory limit, GOMEMLIMIT. (default "256MB")
       --min-bytes-per-slice string          Minimum size of a slice, for "slices" mode. (default "4MB")
       --mode string                         bytes, rows, or slices (default "bytes")
       --number-of-slices uint32             Number of slices, for "slices" mode. (default 60)
@@ -129,6 +130,7 @@ func TestParseConfig_Full(t *testing.T) {
 		"--gzip-block-size", "2MB",
 		"--gzip-concurrency", "5",
 		"--gzip-level", "4",
+		"--memory-limit", "128MB",
 		"--min-bytes-per-slice", "3MB",
 		"--mode", "rows",
 		"--number-of-slices", "456",
@@ -149,6 +151,7 @@ func TestParseConfig_Full(t *testing.T) {
 	expected.GzipBlockSize = 2 * datasize.MB
 	expected.GzipConcurrency = 5
 	expected.GzipLevel = 4
+	expected.MemoryLimit = 128 * datasize.MB
 	expected.MinBytesPerSlice = 3 * datasize.MB
 	expected.Mode = config.ModeRows
 	expected.NumberOfSlices = 456

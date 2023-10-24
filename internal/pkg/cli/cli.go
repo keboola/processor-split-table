@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"runtime/debug"
 	"runtime/pprof"
 
 	"github.com/spf13/pflag"
@@ -23,6 +24,9 @@ func Run(logger log.Logger) error {
 	} else if err != nil {
 		return err
 	}
+
+	// Set soft memory limit (GOMEMLIMIT)
+	debug.SetMemoryLimit(int64(cfg.MemoryLimit.Bytes()))
 
 	// Dump configuration to STDOUT
 	if cfg.DumpConfig {

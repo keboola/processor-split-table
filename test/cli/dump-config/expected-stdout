@@ -18,6 +18,7 @@ Configuration: {
     "outPath": "*/out/table.csv",
     "outManifestPath": "*/out/table.csv.manifest"
   },
+  "memoryLimit": "256MB",
   "dumpConfig": true,
   "cpuProfile": ""
 }
