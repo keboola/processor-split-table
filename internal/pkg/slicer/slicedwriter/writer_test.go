@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/c2h5oh/datasize"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -44,7 +45,7 @@ func TestNewSlicedWriter(t *testing.T) {
 	assert.Equal(t, uint64(0), w.slice.rows)
 	assert.Equal(t, uint64(0), w.slice.rows)
 	assert.Equal(t, uint64(0), w.allRows)
-	assert.Equal(t, uint64(0), w.allBytes)
+	assert.Equal(t, datasize.ByteSize(0), w.allBytes)
 }
 
 func TestCreateNextSlice(t *testing.T) {
@@ -73,7 +74,7 @@ func TestCreateNextSlice(t *testing.T) {
 	assert.Equal(t, uint64(0), w.slice.rows)
 	assert.Equal(t, uint64(0), w.slice.rows)
 	assert.Equal(t, uint64(0), w.allRows)
-	assert.Equal(t, uint64(0), w.allBytes)
+	assert.Equal(t, datasize.ByteSize(0), w.allBytes)
 }
 
 func TestIsSpaceForNextRowBytes(t *testing.T) {
@@ -224,7 +225,7 @@ func TestSlicesMode(t *testing.T) {
 	w, err := New(cfg, 7*12, tempDir)
 	require.NoError(t, err)
 	assert.Equal(t, uint32(3), w.config.NumberOfSlices)
-	assert.Equal(t, uint64(28), w.config.BytesPerSlice) // 7 row * 12 bytes / 3 slices = 28 bytes per slice
+	assert.Equal(t, datasize.ByteSize(28), w.config.BytesPerSlice) // 7 row * 12 bytes / 3 slices = 28 bytes per slice
 
 	// 1 slice
 	assert.NoError(t, w.Write([]byte("\"1bc\",\"def\"\n"))) // 12 bytes

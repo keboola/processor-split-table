@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/c2h5oh/datasize"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -58,7 +59,7 @@ func getTestData() []testData {
 		{
 			comment:  "min value bytesPerSlice",
 			input:    "{\"parameters\": {\"mode\": \"bytes\", \"bytesPerSlice\": 0}}",
-			error:    `invalid configuration: key="parameters.bytesPerSlice", value="0" failed on the "min" validation`,
+			error:    `invalid configuration: key="parameters.bytesPerSlice", value="0B" failed on the "min" validation`,
 			expected: nil,
 		},
 		{
@@ -80,36 +81,16 @@ func getTestData() []testData {
 			expected: nil,
 		},
 		{
-			comment: "default values 1",
-			input:   "{}",
-			error:   "",
-			expected: &Config{
-				Parameters: slicerConfig.Config{
-					Mode:             slicerConfig.ModeBytes,
-					BytesPerSlice:    524_288_000,
-					RowsPerSlice:     1_000_000,
-					NumberOfSlices:   60,
-					MinBytesPerSlice: 4194304,
-					Gzip:             true,
-					GzipLevel:        2,
-				},
-			},
+			comment:  "default values 1",
+			input:    "{}",
+			error:    "",
+			expected: &Config{Parameters: slicerConfig.DefaultConfig()},
 		},
 		{
-			comment: "default values 2",
-			input:   "{\"parameters\": {}}",
-			error:   "",
-			expected: &Config{
-				Parameters: slicerConfig.Config{
-					Mode:             slicerConfig.ModeBytes,
-					BytesPerSlice:    524_288_000,
-					RowsPerSlice:     1_000_000,
-					NumberOfSlices:   60,
-					MinBytesPerSlice: 4194304,
-					Gzip:             true,
-					GzipLevel:        2,
-				},
-			},
+			comment:  "default values 2",
+			input:    "{\"parameters\": {}}",
+			error:    "",
+			expected: &Config{Parameters: slicerConfig.DefaultConfig()},
 		},
 		{
 			comment: "gzip enabled",
@@ -118,10 +99,10 @@ func getTestData() []testData {
 			expected: &Config{
 				Parameters: slicerConfig.Config{
 					Mode:             slicerConfig.ModeBytes,
-					BytesPerSlice:    524_288_000,
+					BytesPerSlice:    500 * datasize.MB,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   60,
-					MinBytesPerSlice: 4194304,
+					MinBytesPerSlice: 4 * datasize.MB,
 					Gzip:             true,
 					GzipLevel:        5,
 				},
@@ -134,10 +115,10 @@ func getTestData() []testData {
 			expected: &Config{
 				Parameters: slicerConfig.Config{
 					Mode:             slicerConfig.ModeBytes,
-					BytesPerSlice:    524_288_000,
+					BytesPerSlice:    500 * datasize.MB,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   60,
-					MinBytesPerSlice: 4194304,
+					MinBytesPerSlice: 4 * datasize.MB,
 					Gzip:             false,
 					GzipLevel:        2,
 				},
@@ -150,10 +131,10 @@ func getTestData() []testData {
 			expected: &Config{
 				Parameters: slicerConfig.Config{
 					Mode:             slicerConfig.ModeRows,
-					BytesPerSlice:    524_288_000,
+					BytesPerSlice:    500 * datasize.MB,
 					RowsPerSlice:     123,
 					NumberOfSlices:   60,
-					MinBytesPerSlice: 4194304,
+					MinBytesPerSlice: 4 * datasize.MB,
 					Gzip:             true,
 					GzipLevel:        2,
 				},
@@ -169,7 +150,23 @@ func getTestData() []testData {
 					BytesPerSlice:    123,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   60,
-					MinBytesPerSlice: 4194304,
+					MinBytesPerSlice: 4 * datasize.MB,
+					Gzip:             true,
+					GzipLevel:        2,
+				},
+			},
+		},
+		{
+			comment: "mode-bytes-string",
+			input:   "{\"parameters\": {\"mode\": \"bytes\", \"bytesPerSlice\": \"1KB\"}}",
+			error:   "",
+			expected: &Config{
+				Parameters: slicerConfig.Config{
+					Mode:             slicerConfig.ModeBytes,
+					BytesPerSlice:    1 * datasize.KB,
+					RowsPerSlice:     1_000_000,
+					NumberOfSlices:   60,
+					MinBytesPerSlice: 4 * datasize.MB,
 					Gzip:             true,
 					GzipLevel:        2,
 				},
@@ -182,10 +179,10 @@ func getTestData() []testData {
 			expected: &Config{
 				Parameters: slicerConfig.Config{
 					Mode:             slicerConfig.ModeSlices,
-					BytesPerSlice:    524_288_000,
+					BytesPerSlice:    500 * datasize.MB,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   123,
-					MinBytesPerSlice: 4194304,
+					MinBytesPerSlice: 4 * datasize.MB,
 					Gzip:             true,
 					GzipLevel:        2,
 				},
@@ -198,10 +195,26 @@ func getTestData() []testData {
 			expected: &Config{
 				Parameters: slicerConfig.Config{
 					Mode:             slicerConfig.ModeSlices,
-					BytesPerSlice:    524_288_000,
+					BytesPerSlice:    500 * datasize.MB,
 					RowsPerSlice:     1_000_000,
 					NumberOfSlices:   60,
 					MinBytesPerSlice: 123,
+					Gzip:             true,
+					GzipLevel:        2,
+				},
+			},
+		},
+		{
+			comment: "mode-slices-min-size-string",
+			input:   "{\"parameters\": {\"mode\": \"slices\", \"minBytesPerSlice\": \"2KB\"}}",
+			error:   "",
+			expected: &Config{
+				Parameters: slicerConfig.Config{
+					Mode:             slicerConfig.ModeSlices,
+					BytesPerSlice:    500 * datasize.MB,
+					RowsPerSlice:     1_000_000,
+					NumberOfSlices:   60,
+					MinBytesPerSlice: 2 * datasize.KB,
 					Gzip:             true,
 					GzipLevel:        2,
 				},

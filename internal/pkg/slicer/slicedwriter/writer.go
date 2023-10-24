@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/c2h5oh/datasize"
+
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/config"
 )
 
@@ -16,15 +18,14 @@ type SlicedWriter struct {
 	sliceNumber uint32
 	slice       *slice
 	allRows     uint64
-	allBytes    uint64
+	allBytes    datasize.ByteSize
 }
 
-func New(cfg config.Config, inputSize int64, outPath string) (*SlicedWriter, error) {
+func New(cfg config.Config, inputSize datasize.ByteSize, outPath string) (*SlicedWriter, error) {
 	// Convert NumberOfSlices to BytesPerSlice
 	if cfg.Mode == config.ModeSlices {
 		cfg.Mode = config.ModeBytes
-		fileSize := float64(inputSize)
-		cfg.BytesPerSlice = uint64(math.Ceil(fileSize / float64(cfg.NumberOfSlices)))
+		cfg.BytesPerSlice = datasize.ByteSize(math.Ceil(float64(inputSize) / float64(cfg.NumberOfSlices)))
 
 		// Too small slices (a few kilobytes) can slow down upload -> check min size
 		if cfg.BytesPerSlice < cfg.MinBytesPerSlice {
@@ -57,7 +58,7 @@ func (w *SlicedWriter) Write(row []byte) error {
 	}
 
 	w.allRows++
-	w.allBytes += rowLength
+	w.allBytes += datasize.ByteSize(rowLength)
 	return nil
 }
 
@@ -86,7 +87,7 @@ func (w *SlicedWriter) AllRows() uint64 {
 	return w.allRows
 }
 
-func (w *SlicedWriter) AlLBytes() uint64 {
+func (w *SlicedWriter) AlLBytes() datasize.ByteSize {
 	return w.allBytes
 }
 

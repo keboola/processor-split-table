@@ -3,6 +3,7 @@ module github.com/keboola/processor-split-table
 go 1.21
 
 require (
+	github.com/c2h5oh/datasize v0.0.0-20220606134207-859f65c6625b
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-playground/validator/v10 v10.15.5
 	github.com/iancoleman/orderedmap v0.3.0

@@ -1,3 +1,3 @@
-Configured number of slices is 4, min 1 B per slice.
+Configured number of slices is 4, min 1B per slice.
 Slicing table "tables/tenRows.csv".
 Table "tables/tenRows.csv" sliced: in/out: 1 / 4 slices, 112B / 101B bytes, 10 rows, manifest created.

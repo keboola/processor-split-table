@@ -7,8 +7,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/c2h5oh/datasize"
 	"github.com/otiai10/copy"
 )
 
@@ -38,15 +40,7 @@ func FileExists(path string) (bool, error) {
 	return false, nil
 }
 
-func FileSize(path string) (uint64, error) {
-	fi, err := os.Stat(path)
-	if err != nil {
-		return 0, fmt.Errorf("cannot get file size of \"%s\": %w", path, err)
-	}
-	return uint64(fi.Size()), nil
-}
-
-func DirSize(path string) (int64, error) {
+func DirSize(path string) (datasize.ByteSize, error) {
 	var size int64
 	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -61,7 +55,11 @@ func DirSize(path string) (int64, error) {
 		return 0, fmt.Errorf("cannot get dir \"%s\" size: %w", path, err)
 	}
 
-	return size, nil
+	return datasize.ByteSize(size), nil
+}
+
+func RemoveSpaces(s string) string {
+	return strings.ReplaceAll(s, " ", "")
 }
 
 // AssertDirectoryContentsSame compares two directories using diff command.

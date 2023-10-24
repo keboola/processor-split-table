@@ -1,4 +1,4 @@
-Configured max 30 B per slice.
+Configured max 30B per slice.
 Gzip enabled, compression level = 2.
 Slicing table "tables/tenRows.csv".
 Table "tables/tenRows.csv" sliced: in/out: 6 / 4 slices, *B / *B bytes, 10 rows, manifest unaffected.

@@ -1,2 +1,2 @@
-Configured max 500 MiB per slice.
+Configured max 500.0MB per slice.
 Slicing table "tables/empty.csv".
