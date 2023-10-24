@@ -18,8 +18,9 @@ Configuration: {
     "outPath": "*/out/table.csv",
     "outManifestPath": "*/out/table.csv.manifest"
   },
-  "memoryLimit": "256MB",
+  "help": false,
   "dumpConfig": true,
+  "memoryLimit": "256MB",
   "cpuProfile": ""
 }
 Slicing table "mytable".

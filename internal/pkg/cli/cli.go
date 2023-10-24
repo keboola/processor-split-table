@@ -2,7 +2,6 @@ package cli
 
 import (
 	"encoding/json"
-	"errors"
 	"os"
 	"runtime/debug"
 	"runtime/pprof"
@@ -17,10 +16,9 @@ import (
 func Run(logger log.Logger) error {
 	// Parse flags and ENVs
 	cfg, err := config.ParseConfig(os.Args)
-	if errors.Is(err, pflag.ErrHelp) {
-		// Print usage
-		_, _ = os.Stderr.WriteString(config.Usage())
-		return err
+	if cfg.Help {
+		printUsage()
+		return pflag.ErrHelp
 	} else if err != nil {
 		return err
 	}
@@ -62,4 +60,8 @@ func startCPUProfile(path string) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func printUsage() {
+	_, _ = os.Stderr.WriteString(config.Usage())
 }
