@@ -1,0 +1,59 @@
+Usage of "slicer".
+
+  Modes via --mode:
+      bytes
+        New slice is created when the --bytes-per-slice limit is reached.
+        Bytes size is measured before compression, if any.
+
+      rows
+        New slice is created when the --rows-per-slice limit is reached.
+
+      slices
+        The table is split into a fixed --number-of-slices.
+        Each slice except the last must have at least --min-bytes-per-slice, it takes precedence.
+
+
+  Input and output table:
+    --table-name
+        Table name for logging purposes.
+    --table-input-path
+        Path to the input table, either a file or a directory with slices.
+    --table-input-manifest-path
+        Path to the manifest of the input table.
+        It is used to get "delimiter" and "enclosure" fields, if any.
+        It can be omitted only if the table does not have a manifest.
+    --table-output-path
+        Directory where the slices of the output table will be written.
+        If it does not exist, it will be created, but the parent directory must exist.
+    --table-output-manifest-path
+        Path where the output manifest will be written.
+        The parent directory must exist.
+        The output manifest is a copy of the input manifest.
+        The "columns" field is set from the CSV header, if it is missing.
+
+
+  Environment variables:
+    Each flag can be specified via an env variable with the "SLICER_" prefix.
+    For example --bytes-per-slice flag can be specified via SLICER_BYTES_PER_SLICE env.
+
+
+  All flags:
+      --buffer-size string                  Output buffer size when gzip compression is disabled. (default "20MB")
+      --bytes-per-slice string              Maximum size of a slice, for "bytes"" mode. (default "500MB")
+      --cpuprofile string                   Write the CPU profile to the specified file.
+      --dump-config                         Print all parameters to the STDOUT.
+      --gzip                                Enable gzip compression for slices. (default true)
+      --gzip-block-size string              Size of the one gzip block; allocated memory = concurrency * block size. (default "2MB")
+      --gzip-concurrency uint32             Number of parallel processed gzip blocks, 0 means the number of CPU threads.
+      --gzip-level int                      GZIP compression level, range: 1 best speed - 9 best compression. (default 2)
+      --help                                Print help.
+      --memory-limit string                 Soft memory limit, GOMEMLIMIT. (default "256MB")
+      --min-bytes-per-slice string          Minimum size of a slice, for "slices" mode. (default "4MB")
+      --mode string                         bytes, rows, or slices (default "bytes")
+      --number-of-slices uint32             Number of slices, for "slices" mode. (default 60)
+      --rows-per-slice uint                 Maximum number of rows per slice, for "rows" mode. (default 1000000)
+      --table-input-manifest-path string    Path to the manifest describing the input table, if any.
+      --table-input-path string             Path to the input table, either a file or a directory with slices.
+      --table-name string                   Table name for logging purposes.
+      --table-output-manifest-path string   Path where the output manifest will be written.
+      --table-output-path string            Directory where the slices of the output table will be written.

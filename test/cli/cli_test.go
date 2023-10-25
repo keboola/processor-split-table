@@ -86,7 +86,7 @@ func RunDataDirTest(t *testing.T, workingDir, testDir string, binary string) {
 	}
 
 	// Load environment variables
-	var envs []string
+	envs := make([]string, 0)
 	{
 		content, err := os.ReadFile(filepath.Join(testDir, "envs"))
 		if !errors.Is(err, os.ErrNotExist) {
@@ -111,7 +111,7 @@ func RunDataDirTest(t *testing.T, workingDir, testDir string, binary string) {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	cmd.Args = args
-	cmd.Env = append(cmd.Env, envs...)
+	cmd.Env = envs
 
 	// Run command
 	exitCode := 0

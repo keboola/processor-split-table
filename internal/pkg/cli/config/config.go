@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/c2h5oh/datasize"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
@@ -65,13 +66,16 @@ const (
 
 type Config struct {
 	slicer.Table   `json:"table"  mapstructure:",squash"`
-	DumpConfig     bool   `json:"dumpConfig" mapstructure:"dump-config"`
-	CPUProfileFile string `json:"cpuProfile" mapstructure:"cpuprofile"`
+	Help           bool              `json:"help" mapstructure:"help"`
+	DumpConfig     bool              `json:"dumpConfig" mapstructure:"dump-config"`
+	MemoryLimit    datasize.ByteSize `validate:"required" json:"memoryLimit" mapstructure:"memory-limit"`
+	CPUProfileFile string            `json:"cpuProfile" mapstructure:"cpuprofile"`
 }
 
 func DefaultConfig() Config {
 	cfg := Config{}
 	cfg.Config = slicerConfig.DefaultConfig()
+	cfg.MemoryLimit = 256 * datasize.MB
 	return cfg
 }
 
@@ -143,6 +147,7 @@ func Usage() string {
 	var b strings.Builder
 	b.WriteString(usageText)
 	b.WriteString(flags().FlagUsages())
+	b.WriteString("\n")
 	return b.String()
 }
 
@@ -156,6 +161,8 @@ func flags() *pflag.FlagSet {
 	)
 
 	f := pflag.NewFlagSet("slicer", pflag.ContinueOnError)
+	f.Bool("help", false, "Print help.")
+	f.String("memory-limit", cfg.MemoryLimit.String(), "Soft memory limit, GOMEMLIMIT.")
 	f.Bool("dump-config", cfg.DumpConfig, "Print all parameters to the STDOUT.")
 	f.String("cpuprofile", cfg.CPUProfileFile, "Write the CPU profile to the specified file.")
 

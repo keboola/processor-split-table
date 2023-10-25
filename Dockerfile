@@ -2,7 +2,7 @@ FROM keboolabot/keboola-processor-split-dev as builder
 
 COPY . /code
 
-RUN /code/scripts/build-processor.sh
+RUN make build-processor
 
 FROM scratch
 
