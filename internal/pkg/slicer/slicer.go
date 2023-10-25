@@ -2,6 +2,7 @@
 package slicer
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -19,17 +20,15 @@ import (
 )
 
 type Table struct {
-	config.Config
-	Name            string `validate:"required"`
-	InPath          string `validate:"required"`
-	InManifestPath  string
-	OutPath         string `validate:"required"`
-	OutManifestPath string `validate:"required"`
+	config.Config   `json:"config" mapstructure:",squash"`
+	Name            string `validate:"required" json:"name"  mapstructure:"table-name"`
+	InPath          string `validate:"required"  json:"inPath" mapstructure:"table-input-path"`
+	InManifestPath  string `json:"inManifestPath"  mapstructure:"table-input-manifest-path"`
+	OutPath         string `validate:"required" json:"outPath" mapstructure:"table-output-path"`
+	OutManifestPath string `validate:"required" json:"outManifestPath" mapstructure:"table-output-manifest-path"`
 }
 
 func SliceTable(logger log.Logger, table Table) (err error) {
-	logger.Infof("Slicing table \"%s\".", table.Name)
-
 	// Validate
 	val := validator.New()
 	if err := val.Struct(table); err != nil {
@@ -38,7 +37,9 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 
 	// Get input type
 	stat, err := os.Stat(table.InPath)
-	if err != nil {
+	if errors.Is(err, os.ErrNotExist) {
+		return kbc.UserErrorf(`input table "%s" not found`, table.InPath)
+	} else if err != nil {
 		return err
 	}
 	slicedInput := stat.IsDir()
@@ -58,6 +59,7 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 	}
 
 	// Create target dir
+	logger.Infof("Slicing table \"%s\".", table.Name)
 	if err := utils.Mkdir(table.OutPath); err != nil {
 		return err
 	}

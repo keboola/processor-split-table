@@ -12,10 +12,6 @@ import (
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/config"
 )
 
-const (
-	OutBufferSize = 20 * 1024 * 1024 // 20 MB
-)
-
 // slice writes to the one slice.
 type slice struct {
 	writer *Writer
