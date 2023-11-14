@@ -20,12 +20,13 @@ import (
 )
 
 type Table struct {
-	config.Config   `json:"config" mapstructure:",squash"`
-	Name            string `validate:"required" json:"name"  mapstructure:"table-name"`
-	InPath          string `validate:"required"  json:"inPath" mapstructure:"table-input-path"`
-	InManifestPath  string `json:"inManifestPath"  mapstructure:"table-input-manifest-path"`
-	OutPath         string `validate:"required" json:"outPath" mapstructure:"table-output-path"`
-	OutManifestPath string `validate:"required" json:"outManifestPath" mapstructure:"table-output-manifest-path"`
+	config.Config        `json:"config" mapstructure:",squash"`
+	Name                 string `validate:"required" json:"name"  mapstructure:"table-name"`
+	InPath               string `validate:"required"  json:"inPath" mapstructure:"table-input-path"`
+	InManifestPath       string `json:"inManifestPath"  mapstructure:"table-input-manifest-path"`
+	InManifestMustExists bool   `json:"-" mapstructure:"-"` // true in CLI, false in processor
+	OutPath              string `validate:"required" json:"outPath" mapstructure:"table-output-path"`
+	OutManifestPath      string `validate:"required" json:"outManifestPath" mapstructure:"table-output-manifest-path"`
 }
 
 func SliceTable(logger log.Logger, table Table) (err error) {
@@ -48,6 +49,11 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 	manifest, err := manifestPkg.LoadManifest(table.InManifestPath)
 	if err != nil {
 		return err
+	}
+
+	// Manifest must exist if the path is specified in CLI
+	if table.InManifestMustExists && table.InManifestPath != "" && !manifest.Exists() {
+		return fmt.Errorf(`manifest "%s" not found`, table.InManifestPath)
 	}
 
 	// Check manifest, if the table is sliced

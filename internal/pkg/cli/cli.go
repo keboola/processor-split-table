@@ -42,6 +42,10 @@ func Run(logger log.Logger) error {
 		defer pprof.StopCPUProfile()
 	}
 
+	// In CLI, the manifest must exist, if it is specified by the flag.
+	// In processor, the manifest is autodetect, so it may not exist.
+	cfg.InManifestMustExists = true
+
 	// Slice table
 	return slicer.SliceTable(logger, cfg.Table)
 }
