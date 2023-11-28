@@ -24,4 +24,4 @@ Configuration: {
   "cpuProfile": ""
 }
 Slicing table "mytable".
-Table "mytable" sliced: in/out: 1 / 1 slices, 22B / 10B bytes, 3 rows, manifest created.
+Table "mytable" sliced: in/out: 1 / 1 slices, 22B / 42B bytes, 3 rows, manifest created.
