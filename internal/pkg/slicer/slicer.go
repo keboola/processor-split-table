@@ -98,11 +98,6 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if closeErr := writer.Close(); closeErr != nil && err == nil {
-			err = closeErr
-		}
-	}()
 
 	// If manifest without defined columns -> store first row/header to manifest "columns" key
 	addColumnsToManifest := !manifest.HasColumns()
@@ -126,8 +121,8 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 		return fmt.Errorf("error when reading CSV \"%s\": %w", table.InPath, err)
 	}
 
-	// Write manifest
-	if err := manifest.WriteTo(table.OutManifestPath); err != nil {
+	// Close the writer
+	if err = writer.Close(); err != nil {
 		return err
 	}
 
@@ -139,6 +134,11 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 		} else {
 			return err
 		}
+	}
+
+	// Write manifest
+	if err := manifest.WriteTo(table.OutManifestPath); err != nil {
+		return err
 	}
 
 	// Log statistics
