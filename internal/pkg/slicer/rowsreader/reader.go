@@ -2,16 +2,22 @@ package rowsreader
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/c2h5oh/datasize"
+	"github.com/klauspost/readahead"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/keboola/processor-split-table/internal/pkg/kbc"
 	"github.com/keboola/processor-split-table/internal/pkg/pool"
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/closer"
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/columnsparser"
+	"github.com/keboola/processor-split-table/internal/pkg/slicer/config"
 )
 
 const (
@@ -32,9 +38,15 @@ type Reader struct {
 
 	rowCounter uint64
 
-	closer      io.Closer
-	scanner     *bufio.Scanner
-	gzipReaders *pool.GZIPReaderPool
+	closers      closer.Closers
+	scanner      *bufio.Scanner
+	gzipReaders  *pool.GZIPReaderPool
+	aheadBuffers *pool.ReadAheadBuffersPool
+}
+
+type sliceReadCloser struct {
+	io.Reader
+	closer.Closers
 }
 
 // NewSlicesReader creates the Reader for a sliced CSV table.
@@ -52,15 +64,19 @@ func newReader(cfg config.Config, path string, slices []string, sliced bool, del
 	reader := &Reader{
 		config:       cfg,
 		path:         path,
-		delimiter:   delimiter,
-		enclosure:   enclosure,
-		sliced:      sliced,
-		gzipReaders: pool.GZIPReaders(),
+		slices:       slices,
+		delimiter:    delimiter,
+		enclosure:    enclosure,
+		sliced:       sliced,
+		gzipReaders:  pool.GZIPReaders(),
+		aheadBuffers: pool.ReadAheadBuffers(int(cfg.AheadBlocks), cfg.AheadBlockSize),
 	}
 
 	// Create pipe to merge content of the slices
 	pipeOut, pipeIn := io.Pipe()
-	reader.closer = pipeOut
+	reader.closers.Append(pipeOut.Close)
+
+	// Stream slices to the pipe
 	go reader.readSlicesTo(pipeIn)
 
 	// Create scanner with custom split function
@@ -119,7 +135,7 @@ func (r *Reader) Bytes() []byte {
 }
 
 func (r *Reader) Close() error {
-	if err := r.closer.Close(); err != nil {
+	if err := r.closers.Close(); err != nil {
 		return err
 	}
 
@@ -131,53 +147,96 @@ func (r *Reader) Close() error {
 }
 
 func (r *Reader) readSlicesTo(pipeIn *io.PipeWriter) {
-	var err error
-	for _, path := range r.slices {
-		err = r.readSlice(path, pipeIn)
-		if err != nil {
-			break
+	// The readers channel is buffered.
+	// The specified number of slices will be opened ahead and the beginning of the slice will be preloaded.
+	// This ensures a smooth transition between slices, without losing performance.
+	readers := make(chan *sliceReadCloser, r.config.AheadSlices)
+	grp, ctx := errgroup.WithContext(context.Background())
+
+	// Open multiple readers in background
+	grp.Go(func() error {
+		defer close(readers)
+		for _, path := range r.slices {
+			// Create slice read ahead reader
+			sliceReader, err := r.openSlice(path)
+			if err != nil {
+				return err
+			}
+
+			// Send reader to the buffered channel
+			select {
+			case <-ctx.Done():
+				return nil
+			case readers <- sliceReader:
+				// continue
+			}
 		}
-	}
+		return nil
+	})
+
+	// Copy data from slice readers to the pipe
+	grp.Go(func() error {
+		for sliceReader := range readers {
+			select {
+			case <-ctx.Done():
+				return nil
+			default:
+				_, readErr := io.Copy(pipeIn, sliceReader)
+				closeErr := sliceReader.Close()
+				if readErr != nil {
+					return readErr
+				} else if closeErr != nil {
+					return closeErr
+				}
+			}
+		}
+		return nil
+	})
 
 	// Note: error is processed on the reading side
+	err := grp.Wait()
 	_ = pipeIn.CloseWithError(err)
 }
 
-func (r *Reader) readSlice(path string, pipeIn *io.PipeWriter) (err error) {
-	// Defer: close all readers in the chain, after the slice is processed
-	var closers closer.Closers
-	defer func() {
-		if closeErr := closers.Close(); closeErr != nil {
-			if err == nil {
-				err = closeErr
-			}
-		}
-	}()
+func (r *Reader) openSlice(path string) (*sliceReadCloser, error) {
+	out := &sliceReadCloser{}
 
 	// Open the file
-	var sliceReader io.Reader
 	if file, err := os.OpenFile(path, os.O_RDONLY, 0); err == nil {
-		sliceReader = file
-		closers.Append(func() error {
-			return file.Close()
-		})
+		out.Reader = file
+		out.Closers.Append(file.Close)
 	} else {
-		return err
+		return nil, err
 	}
 
 	// Add decompression
 	if strings.HasSuffix(path, kbc.GzipFileExtension) {
-		if gzipReader, err := r.gzipReaders.ReaderFrom(sliceReader); err == nil {
-			sliceReader = gzipReader
-			closers.Append(func() error {
-				return gzipReader.Close()
-			})
+		if gzipReader, err := r.gzipReaders.ReaderFrom(out.Reader); err == nil {
+			out.Reader = gzipReader
+			out.Closers.
+				Append(gzipReader.Close).
+				Append(func() error {
+					r.gzipReaders.Put(gzipReader)
+					return nil
+				})
 		} else {
-			return err
+			return nil, err
 		}
 	}
 
-	// Stream data to the pipe
-	_, err = io.Copy(pipeIn, sliceReader)
-	return err
+	// Add read ahead buffer
+	buffers := r.aheadBuffers.Get()
+	if aheadReader, err := readahead.NewReaderBuffer(out.Reader, *buffers); err == nil {
+		out.Reader = aheadReader
+		out.Closers.
+			Append(aheadReader.Close).
+			Append(func() error {
+				r.aheadBuffers.Put(buffers)
+				return nil
+			})
+	} else {
+		return nil, err
+	}
+
+	return out, nil
 }
