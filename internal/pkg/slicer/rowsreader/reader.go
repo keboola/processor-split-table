@@ -21,8 +21,10 @@ import (
 )
 
 const (
-	StartTokenBufferSize = 512 * 1024       // 512kB, initial size of buffer, it is auto-scaled
-	MaxTokenBufferSize   = 50 * 1024 * 1024 // 50MB, max size of buffer -> max size of one row
+	// StartTokenBufferSize specifies initial size of the scanner buffer.
+	StartTokenBufferSize = int(8 * datasize.MB)
+	// MaxTokenBufferSize specifies maximal size of the scanner buffer, it is also maximum length of a CSV row.
+	MaxTokenBufferSize = int(50 * datasize.MB)
 )
 
 // Reader reads rows from the CSV table.
