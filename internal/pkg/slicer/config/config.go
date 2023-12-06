@@ -58,11 +58,11 @@ func Default() Config {
 		RowsPerSlice:     1_000_000,
 		NumberOfSlices:   60,
 		MinBytesPerSlice: 4 * datasize.MB,
-		Gzip:             true,
-		GzipLevel:        2,                // 1 - BestSpeed, 9 - BestCompression
 		AheadSlices:      1,
 		AheadBlocks:      16,
 		AheadBlockSize:   1 * datasize.MB,
+		Gzip:             true,
+		GzipLevel:        1,                // 1 - BestSpeed, 9 - BestCompression
 		GzipConcurrency:  0,                // 0 = auto = number of CPU threads
 		GzipBlockSize:    2 * datasize.MB,  // so total buffer size is by default: GzipConcurrency (number of CPU threads) * GzipBlockSize
 		BufferSize:       20 * datasize.MB, // it is used if GZIP is disabled

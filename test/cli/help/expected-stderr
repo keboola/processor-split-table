@@ -48,7 +48,7 @@ Usage of "slicer".
       --gzip                                Enable gzip compression for slices. (default true)
       --gzip-block-size string              Size of the one gzip block; allocated memory = concurrency * block size. (default "2MB")
       --gzip-concurrency uint32             Number of parallel processed gzip blocks, 0 means the number of CPU threads.
-      --gzip-level int                      GZIP compression level, range: 1 best speed - 9 best compression. (default 2)
+      --gzip-level int                      GZIP compression level, range: 1 best speed - 9 best compression. (default 1)
       --help                                Print help.
       --memory-limit string                 Soft memory limit, GOMEMLIMIT. (default "512MB")
       --min-bytes-per-slice string          Minimum size of a slice, for "slices" mode. (default "4MB")
