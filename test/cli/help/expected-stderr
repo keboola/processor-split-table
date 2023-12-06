@@ -38,6 +38,9 @@ Usage of "slicer".
 
 
   All flags:
+      --ahead-block-size string             Size of a one read ahead input block. (default "1MB")
+      --ahead-blocks uint32                 Number of blocks read ahead from an input slice. (default 16)
+      --ahead-slices uint32                 Number of input slices opened ahead. (default 1)
       --buffer-size string                  Output buffer size when gzip compression is disabled. (default "20MB")
       --bytes-per-slice string              Maximum size of a slice, for "bytes"" mode. (default "500MB")
       --cpuprofile string                   Write the CPU profile to the specified file.

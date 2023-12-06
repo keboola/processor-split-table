@@ -86,6 +86,9 @@ func TestParseConfig_Full(t *testing.T) {
 	expected.BufferSize = 123 * datasize.KB
 	expected.BytesPerSlice = 1 * datasize.MB
 	expected.CPUProfileFile = "cpu.out"
+	expected.AheadSlices = 1
+	expected.AheadBlocks = 16
+	expected.AheadBlockSize = datasize.MB
 	expected.Gzip = false
 	expected.GzipBlockSize = 2 * datasize.MB
 	expected.GzipConcurrency = 5
