@@ -15,6 +15,10 @@ type BufferWriterPool struct {
 	pool *sync.Pool
 }
 
+type ReadAheadBuffersPool struct {
+	pool *sync.Pool
+}
+
 type GZIPReaderPool struct {
 	pool *sync.Pool
 }
@@ -28,6 +32,20 @@ func BufferedWriters(size datasize.ByteSize) *BufferWriterPool {
 		pool: &sync.Pool{
 			New: func() any {
 				return bufio.NewWriterSize(nil, int(size.Bytes()))
+			},
+		},
+	}
+}
+
+func ReadAheadBuffers(buffers int, size datasize.ByteSize) *ReadAheadBuffersPool {
+	return &ReadAheadBuffersPool{
+		pool: &sync.Pool{
+			New: func() any {
+				out := make([][]byte, buffers)
+				for i := 0; i < buffers; i++ {
+					out[i] = make([]byte, size)
+				}
+				return &out
 			},
 		},
 	}
@@ -71,6 +89,17 @@ func (p *BufferWriterPool) WriterTo(w io.Writer) *bufio.Writer {
 	out := p.pool.Get().(*bufio.Writer)
 	out.Reset(w)
 	return out
+}
+
+// Put adds buffers back to the pool.
+func (p *ReadAheadBuffersPool) Put(v *[][]byte) {
+	p.pool.Put(v)
+}
+
+// Get gets buffer from the pool.
+func (p *ReadAheadBuffersPool) Get() *[][]byte {
+	// Reset is not needed, it is handled by the readahead library
+	return p.pool.Get().(*[][]byte)
 }
 
 // Put adds writer back to the pool.
