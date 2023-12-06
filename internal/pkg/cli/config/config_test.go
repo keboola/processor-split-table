@@ -19,7 +19,7 @@ func TestUsage(t *testing.T) {
 func TestParseConfig_Help(t *testing.T) {
 	t.Parallel()
 
-	cfg, err := ParseConfig([]string{"--help"})
+	cfg, err := Parse([]string{"--help"})
 	require.Error(t, err)
 	assert.True(t, cfg.Help)
 }
@@ -27,7 +27,7 @@ func TestParseConfig_Help(t *testing.T) {
 func TestParseConfig_Empty(t *testing.T) {
 	t.Parallel()
 
-	_, err := ParseConfig([]string{})
+	_, err := Parse([]string{})
 	if assert.Error(t, err) {
 		assert.Equal(t, strings.TrimSpace(`
 configuration is not valid:
@@ -42,7 +42,7 @@ configuration is not valid:
 func TestParseConfig_Minimal(t *testing.T) {
 	t.Parallel()
 
-	cfg, err := ParseConfig([]string{
+	cfg, err := Parse([]string{
 		"--table-name", "my-table",
 		"--table-input-path", "in/tables/my.csv",
 		"--table-output-path", "out/tables/my.csv",
@@ -50,7 +50,7 @@ func TestParseConfig_Minimal(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	expected := DefaultConfig()
+	expected := Default()
 	expected.Name = "my-table"
 	expected.InPath = "in/tables/my.csv"
 	expected.OutPath = "out/tables/my.csv"
@@ -61,7 +61,7 @@ func TestParseConfig_Minimal(t *testing.T) {
 func TestParseConfig_Full(t *testing.T) {
 	t.Parallel()
 
-	cfg, err := ParseConfig([]string{
+	cfg, err := Parse([]string{
 		"--buffer-size", "123KB",
 		"--bytes-per-slice", "1MB",
 		"--cpuprofile", "cpu.out",
@@ -86,6 +86,9 @@ func TestParseConfig_Full(t *testing.T) {
 	expected.BufferSize = 123 * datasize.KB
 	expected.BytesPerSlice = 1 * datasize.MB
 	expected.CPUProfileFile = "cpu.out"
+	expected.AheadSlices = 1
+	expected.AheadBlocks = 16
+	expected.AheadBlockSize = datasize.MB
 	expected.Gzip = false
 	expected.GzipBlockSize = 2 * datasize.MB
 	expected.GzipConcurrency = 5

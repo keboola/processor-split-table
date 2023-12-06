@@ -38,16 +38,19 @@ Usage of "slicer".
 
 
   All flags:
+      --ahead-block-size string             Size of a one read ahead input block. (default "1MB")
+      --ahead-blocks uint32                 Number of blocks read ahead from an input slice, 0 disables read-ahead. (default 16)
+      --ahead-slices uint32                 Number of input slices opened ahead. (default 1)
       --buffer-size string                  Output buffer size when gzip compression is disabled. (default "20MB")
       --bytes-per-slice string              Maximum size of a slice, for "bytes"" mode. (default "500MB")
       --cpuprofile string                   Write the CPU profile to the specified file.
       --dump-config                         Print all parameters to the STDOUT.
       --gzip                                Enable gzip compression for slices. (default true)
-      --gzip-block-size string              Size of the one gzip block; allocated memory = concurrency * block size. (default "2MB")
+      --gzip-block-size string              Size of the one gzip block; allocated memory = concurrency * block size. (default "1MB")
       --gzip-concurrency uint32             Number of parallel processed gzip blocks, 0 means the number of CPU threads.
-      --gzip-level int                      GZIP compression level, range: 1 best speed - 9 best compression. (default 2)
+      --gzip-level int                      GZIP compression level, range: 1 best speed - 9 best compression. (default 1)
       --help                                Print help.
-      --memory-limit string                 Soft memory limit, GOMEMLIMIT. (default "256MB")
+      --memory-limit string                 Soft memory limit, GOMEMLIMIT. (default "512MB")
       --min-bytes-per-slice string          Minimum size of a slice, for "slices" mode. (default "4MB")
       --mode string                         bytes, rows, or slices (default "bytes")
       --number-of-slices uint32             Number of slices, for "slices" mode. (default 60)

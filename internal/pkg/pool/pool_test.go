@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/c2h5oh/datasize"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -52,6 +53,22 @@ func TestBufferWriters(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, w4.Flush())
 	require.Equal(t, rawData, out4.Bytes())
+}
+
+func TestReadAheadBuffers(t *testing.T) {
+	t.Parallel()
+
+	buffersCount := 5
+	bufferSize := 2 * datasize.MB
+	pool := ReadAheadBuffers(buffersCount, bufferSize)
+
+	buffers := pool.Get()
+	assert.Equal(t, buffersCount, len(*buffers))
+	for _, buffer := range *buffers {
+		assert.Equal(t, int(bufferSize), len(buffer))
+	}
+
+	pool.Put(buffers)
 }
 
 func TestGZIPReaders(t *testing.T) {

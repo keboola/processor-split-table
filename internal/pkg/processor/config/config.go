@@ -43,7 +43,7 @@ func LoadConfig(configPath string) (cfg *Config, err error) {
 	}
 
 	// Default values
-	conf := &Config{Parameters: slicerConfig.DefaultConfig()}
+	conf := &Config{Parameters: slicerConfig.Default()}
 
 	// Parse JSON
 	err = json.Unmarshal(content, conf)

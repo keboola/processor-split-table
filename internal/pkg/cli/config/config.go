@@ -72,15 +72,15 @@ type Config struct {
 	CPUProfileFile string            `json:"cpuProfile" mapstructure:"cpuprofile"`
 }
 
-func DefaultConfig() Config {
+func Default() Config {
 	cfg := Config{}
-	cfg.Config = slicerConfig.DefaultConfig()
-	cfg.MemoryLimit = 256 * datasize.MB
+	cfg.Config = slicerConfig.Default()
+	cfg.MemoryLimit = 512 * datasize.MB
 	return cfg
 }
 
-func ParseConfig(args []string) (Config, error) {
-	cfg := DefaultConfig()
+func Parse(args []string) (Config, error) {
+	cfg := Default()
 
 	// Parse flags
 	f := flags()
@@ -152,7 +152,7 @@ func Usage() string {
 }
 
 func flags() *pflag.FlagSet {
-	cfg := DefaultConfig()
+	cfg := Default()
 	modes := fmt.Sprintf(
 		`%s, %s, or %s`,
 		slicerConfig.ModeBytes.String(),
@@ -177,6 +177,10 @@ func flags() *pflag.FlagSet {
 	f.Uint64("rows-per-slice", cfg.RowsPerSlice, `Maximum number of rows per slice, for "rows" mode.`)
 	f.Uint32("number-of-slices", cfg.NumberOfSlices, `Number of slices, for "slices" mode.`)
 	f.String("min-bytes-per-slice", cfg.MinBytesPerSlice.String(), `Minimum size of a slice, for "slices" mode.`)
+
+	f.Uint32("ahead-slices", cfg.AheadSlices, "Number of input slices opened ahead.")
+	f.Uint32("ahead-blocks", cfg.AheadBlocks, "Number of blocks read ahead from an input slice, 0 disables read-ahead.")
+	f.String("ahead-block-size", cfg.AheadBlockSize.String(), "Size of a one read ahead input block.")
 
 	f.Bool("gzip", cfg.Gzip, "Enable gzip compression for slices.")
 	f.Int("gzip-level", cfg.GzipLevel, "GZIP compression level, range: 1 best speed - 9 best compression.")
