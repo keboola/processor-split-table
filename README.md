@@ -97,7 +97,16 @@ You can download the CLI from the [GitHub Releases](https://github.com/keboola/p
 <details>
   <summary>Expand</summary>
 
-
+- `--ahead-block-size` *int*
+  - Or `SLICER_AHEAD_BLOCK_SIZE` env.
+  - Size of a one read ahead input block. (default "1MB")
+- `--ahead-blocks` *int*          
+  - Or `SLICER_AHEAD_BLOCKS` env.
+  - Number of blocks read ahead from an input slice. (default 16)
+  - `0` disables read-ahead.
+- `--ahead-slices` *int*            
+  - Or `SLICER_AHEAD_SLICES` env.
+  - Number of input slices opened ahead. (default 1)
 - `--buffer-size` *string*
   - Or `SLICER_BUFFER_SIZE` env.
   - Output buffer size when gzip compression is disabled. (default "20MB")
