@@ -35,8 +35,8 @@ type Config struct {
 	// GZIP configuration
 	Gzip            bool              `json:"gzip" mapstructure:"gzip"`
 	GzipLevel       int               `json:"gzipLevel" mapstructure:"gzip-level" validate:"min=1,max=9"`
-	GzipConcurrency uint32            `json:"gzipConcurrency" mapstructure:"gzip-concurrency"` // 0 means auto = number of CPU threads
-	GzipBlockSize   datasize.ByteSize `json:"gzipBlockSize" mapstructure:"gzip-block-size" validate:"min=32768"`
+	GzipConcurrency uint32            `json:"gzipConcurrency" mapstructure:"gzip-concurrency"`                   // 0 means auto = number of CPU threads
+	GzipBlockSize   datasize.ByteSize `json:"gzipBlockSize" mapstructure:"gzip-block-size" validate:"min=32768"` // min 32KB
 
 	// BufferSize is used if GZIP is disabled.
 	// If Gzip is enabled, the total buffer size is GzipConcurrency * GzipBlockSize.
