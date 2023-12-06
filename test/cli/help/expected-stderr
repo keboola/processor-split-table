@@ -46,7 +46,7 @@ Usage of "slicer".
       --cpuprofile string                   Write the CPU profile to the specified file.
       --dump-config                         Print all parameters to the STDOUT.
       --gzip                                Enable gzip compression for slices. (default true)
-      --gzip-block-size string              Size of the one gzip block; allocated memory = concurrency * block size. (default "2MB")
+      --gzip-block-size string              Size of the one gzip block; allocated memory = concurrency * block size. (default "1MB")
       --gzip-concurrency uint32             Number of parallel processed gzip blocks, 0 means the number of CPU threads.
       --gzip-level int                      GZIP compression level, range: 1 best speed - 9 best compression. (default 1)
       --help                                Print help.

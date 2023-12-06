@@ -64,7 +64,7 @@ func Default() Config {
 		Gzip:             true,
 		GzipLevel:        1,                // 1 - BestSpeed, 9 - BestCompression
 		GzipConcurrency:  0,                // 0 = auto = number of CPU threads
-		GzipBlockSize:    2 * datasize.MB,  // so total buffer size is by default: GzipConcurrency (number of CPU threads) * GzipBlockSize
+		GzipBlockSize:    1 * datasize.MB,  // so total buffer size is by default: GzipConcurrency (number of CPU threads) * GzipBlockSize
 		BufferSize:       20 * datasize.MB, // it is used if GZIP is disabled
 	}
 }

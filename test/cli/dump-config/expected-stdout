@@ -12,7 +12,7 @@ Configuration: {
       "gzip": true,
       "gzipLevel": 5,
       "gzipConcurrency": 0,
-      "gzipBlockSize": "2MB",
+      "gzipBlockSize": "1MB",
       "bufferSize": "20MB"
     },
     "name": "mytable",
