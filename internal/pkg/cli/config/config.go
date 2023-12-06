@@ -72,15 +72,15 @@ type Config struct {
 	CPUProfileFile string            `json:"cpuProfile" mapstructure:"cpuprofile"`
 }
 
-func DefaultConfig() Config {
+func Default() Config {
 	cfg := Config{}
-	cfg.Config = slicerConfig.DefaultConfig()
+	cfg.Config = slicerConfig.Default()
 	cfg.MemoryLimit = 256 * datasize.MB
 	return cfg
 }
 
-func ParseConfig(args []string) (Config, error) {
-	cfg := DefaultConfig()
+func Parse(args []string) (Config, error) {
+	cfg := Default()
 
 	// Parse flags
 	f := flags()
@@ -152,7 +152,7 @@ func Usage() string {
 }
 
 func flags() *pflag.FlagSet {
-	cfg := DefaultConfig()
+	cfg := Default()
 	modes := fmt.Sprintf(
 		`%s, %s, or %s`,
 		slicerConfig.ModeBytes.String(),

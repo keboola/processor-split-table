@@ -84,13 +84,13 @@ func getTestData() []testData {
 			comment:  "default values 1",
 			input:    "{}",
 			error:    "",
-			expected: &Config{Parameters: slicerConfig.DefaultConfig()},
+			expected: &Config{Parameters: slicerConfig.Default()},
 		},
 		{
 			comment:  "default values 2",
 			input:    "{\"parameters\": {}}",
 			error:    "",
-			expected: &Config{Parameters: slicerConfig.DefaultConfig()},
+			expected: &Config{Parameters: slicerConfig.Default()},
 		},
 		{
 			comment: "gzip enabled",

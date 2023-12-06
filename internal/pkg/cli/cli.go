@@ -15,7 +15,7 @@ import (
 
 func Run(logger log.Logger) error {
 	// Parse flags and ENVs
-	cfg, err := config.ParseConfig(os.Args)
+	cfg, err := config.Parse(os.Args)
 	if cfg.Help {
 		printUsage()
 		return pflag.ErrHelp

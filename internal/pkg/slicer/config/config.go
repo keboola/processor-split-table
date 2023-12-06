@@ -43,7 +43,7 @@ type Config struct {
 	BufferSize datasize.ByteSize `json:"bufferSize" mapstructure:"buffer-size" validate:"min=32768"`
 }
 
-func DefaultConfig() Config {
+func Default() Config {
 	return Config{
 		Mode:             ModeBytes,
 		BytesPerSlice:    500 * datasize.MB,
