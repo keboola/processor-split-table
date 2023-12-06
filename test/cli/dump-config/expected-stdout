@@ -23,7 +23,7 @@ Configuration: {
   },
   "help": false,
   "dumpConfig": true,
-  "memoryLimit": "256MB",
+  "memoryLimit": "512MB",
   "cpuProfile": ""
 }
 Slicing table "mytable".

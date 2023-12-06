@@ -75,7 +75,7 @@ type Config struct {
 func Default() Config {
 	cfg := Config{}
 	cfg.Config = slicerConfig.Default()
-	cfg.MemoryLimit = 256 * datasize.MB
+	cfg.MemoryLimit = 512 * datasize.MB
 	return cfg
 }
 
