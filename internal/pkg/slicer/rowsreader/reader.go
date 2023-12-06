@@ -23,6 +23,7 @@ const (
 // When slicing, we do not need to decode the individual columns, we just need to reliably determine the rows.
 // Therefore, this own/fast implementation.
 type Reader struct {
+	config    config.Config
 	path      string
 	slices    []string
 	sliced    bool
@@ -37,20 +38,20 @@ type Reader struct {
 }
 
 // NewSlicesReader creates the Reader for a sliced CSV table.
-func NewSlicesReader(path string, slices kbc.Slices, delimiter byte, enclosure byte) (*Reader, error) {
-	return newReader(path, slices.Paths(), true, delimiter, enclosure)
+func NewSlicesReader(cfg config.Config, path string, slices kbc.Slices, delimiter byte, enclosure byte) (*Reader, error) {
+	return newReader(cfg, path, slices.Paths(), true, delimiter, enclosure)
 }
 
 // NewFileReader creates the Reader for a single CSV file.
 // It is special case of the slices reader with only one slice.
-func NewFileReader(path string, delimiter byte, enclosure byte) (*Reader, error) {
-	return newReader(path, []string{path}, false, delimiter, enclosure)
+func NewFileReader(cfg config.Config, path string, delimiter byte, enclosure byte) (*Reader, error) {
+	return newReader(cfg, path, []string{path}, false, delimiter, enclosure)
 }
 
-func newReader(path string, slices []string, sliced bool, delimiter byte, enclosure byte) (*Reader, error) {
+func newReader(cfg config.Config, path string, slices []string, sliced bool, delimiter byte, enclosure byte) (*Reader, error) {
 	reader := &Reader{
-		path:        path,
-		slices:      slices,
+		config:       cfg,
+		path:         path,
 		delimiter:   delimiter,
 		enclosure:   enclosure,
 		sliced:      sliced,

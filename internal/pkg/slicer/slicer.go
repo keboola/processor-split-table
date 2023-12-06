@@ -81,13 +81,13 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 		if inputSize, err = slices.Size(); err != nil {
 			return err
 		}
-		reader, err = rowsreader.NewSlicesReader(table.InPath, slices, manifest.Delimiter(), manifest.Enclosure())
+		reader, err = rowsreader.NewSlicesReader(table.Config, table.InPath, slices, manifest.Delimiter(), manifest.Enclosure())
 		if err != nil {
 			return err
 		}
 	} else {
 		inputSize = datasize.ByteSize(stat.Size())
-		reader, err = rowsreader.NewFileReader(table.InPath, manifest.Delimiter(), manifest.Enclosure())
+		reader, err = rowsreader.NewFileReader(table.Config, table.InPath, manifest.Delimiter(), manifest.Enclosure())
 		if err != nil {
 			return err
 		}
