@@ -227,17 +227,19 @@ func (r *Reader) openSlice(path string) (*sliceReadCloser, error) {
 	}
 
 	// Add read ahead buffer
-	buffers := r.aheadBuffers.Get()
-	if aheadReader, err := readahead.NewReaderBuffer(out.Reader, *buffers); err == nil {
-		out.Reader = aheadReader
-		out.Closers.
-			Append(aheadReader.Close).
-			Append(func() error {
-				r.aheadBuffers.Put(buffers)
-				return nil
-			})
-	} else {
-		return nil, err
+	if r.config.AheadBlocks != 0 {
+		buffers := r.aheadBuffers.Get()
+		if aheadReader, err := readahead.NewReaderBuffer(out.Reader, *buffers); err == nil {
+			out.Reader = aheadReader
+			out.Closers.
+				Append(aheadReader.Close).
+				Append(func() error {
+					r.aheadBuffers.Put(buffers)
+					return nil
+				})
+		} else {
+			return nil, err
+		}
 	}
 
 	return out, nil

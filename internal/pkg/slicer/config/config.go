@@ -36,7 +36,7 @@ type Config struct {
 	// AheadSlices specifies number of slices opened ahead.
 	AheadSlices uint32 `json:"aheadSlices" mapstructure:"ahead-slices" validate:"min=1"`
 	// AheadSlices specifies number of blocks read ahead from a slice.
-	AheadBlocks uint32 `json:"aheadBlocks" mapstructure:"ahead-blocks" validate:"min=1"`
+	AheadBlocks uint32 `json:"aheadBlocks" mapstructure:"ahead-blocks"` // 0 disables read-ahead
 	// AheadBlockSize specifies size of a one read ahead block.
 	AheadBlockSize datasize.ByteSize `json:"aheadBlockSize" mapstructure:"ahead-block-size" validate:"min=32768"` // min 32KB
 

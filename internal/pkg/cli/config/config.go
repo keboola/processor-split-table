@@ -179,7 +179,7 @@ func flags() *pflag.FlagSet {
 	f.String("min-bytes-per-slice", cfg.MinBytesPerSlice.String(), `Minimum size of a slice, for "slices" mode.`)
 
 	f.Uint32("ahead-slices", cfg.AheadSlices, "Number of input slices opened ahead.")
-	f.Uint32("ahead-blocks", cfg.AheadBlocks, "Number of blocks read ahead from an input slice.")
+	f.Uint32("ahead-blocks", cfg.AheadBlocks, "Number of blocks read ahead from an input slice, 0 disables read-ahead.")
 	f.String("ahead-block-size", cfg.AheadBlockSize.String(), "Size of a one read ahead input block.")
 
 	f.Bool("gzip", cfg.Gzip, "Enable gzip compression for slices.")
