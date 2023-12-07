@@ -5,11 +5,14 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/benbjohnson/clock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 
 	"github.com/keboola/processor-split-table/internal/pkg/kbc"
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/config"
+	"github.com/keboola/processor-split-table/internal/pkg/slicer/rowsreader/progress"
 )
 
 type testDataForFunc struct {
@@ -33,7 +36,7 @@ func TestReadHeader(t *testing.T) {
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
 
-	csvReader, err := NewFileReader(config.Default(), filepath.Join(rootDir, "fixtures", "two_rows.csv"), ',', '"')
+	csvReader, err := NewFileReader(newTestProgressLogger(), config.Default(), filepath.Join(rootDir, "fixtures", "two_rows.csv"), ',', '"')
 	require.NoError(t, err)
 
 	header, err := csvReader.Header()
@@ -47,7 +50,7 @@ func TestReadHeaderCannotParse(t *testing.T) {
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
 
-	csvReader, err := NewFileReader(config.Default(), filepath.Join(rootDir, "fixtures", "bad_header.csv"), ',', '"')
+	csvReader, err := NewFileReader(newTestProgressLogger(), config.Default(), filepath.Join(rootDir, "fixtures", "bad_header.csv"), ',', '"')
 	require.NoError(t, err)
 
 	_, err = csvReader.Header()
@@ -62,7 +65,7 @@ func TestReadHeaderRowAlreadyRead(t *testing.T) {
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
 
-	csvReader, err := NewFileReader(config.Default(), filepath.Join(rootDir, "fixtures", "two_rows.csv"), ',', '"')
+	csvReader, err := NewFileReader(newTestProgressLogger(), config.Default(), filepath.Join(rootDir, "fixtures", "two_rows.csv"), ',', '"')
 	require.NoError(t, err)
 
 	csvReader.Read()
@@ -79,7 +82,7 @@ func TestReadHeaderEmptyFile(t *testing.T) {
 	_, testFile, _, _ := runtime.Caller(0)
 	rootDir := filepath.Dir(testFile)
 
-	csvReader, err := NewFileReader(config.Default(), filepath.Join(rootDir, "fixtures", "empty.csv"), ',', '"')
+	csvReader, err := NewFileReader(newTestProgressLogger(), config.Default(), filepath.Join(rootDir, "fixtures", "empty.csv"), ',', '"')
 	require.NoError(t, err)
 
 	_, err = csvReader.Header()
@@ -98,7 +101,7 @@ func TestReadHeaderSlicedFile(t *testing.T) {
 	slices, err := kbc.FindSlices(path)
 	require.NoError(t, err)
 
-	csvReader, err := NewSlicesReader(config.Default(), path, slices, ',', '"')
+	csvReader, err := NewSlicesReader(newTestProgressLogger(), config.Default(), path, slices, ',', '"')
 	require.NoError(t, err)
 
 	_, err = csvReader.Header()
@@ -115,7 +118,7 @@ func TestReadCSVFile(t *testing.T) {
 	for _, testData := range getReadCsvTestData() {
 		var rows []string
 
-		csvReader, err := NewFileReader(config.Default(), filepath.Join(rootDir, "fixtures", testData.csvPath), ',', '"')
+		csvReader, err := NewFileReader(newTestProgressLogger(), config.Default(), filepath.Join(rootDir, "fixtures", testData.csvPath), ',', '"')
 		require.NoError(t, err)
 
 		for csvReader.Read() {
@@ -183,4 +186,8 @@ func getReadCsvTestData() []testDataForRead {
 			},
 		},
 	}
+}
+
+func newTestProgressLogger() *progress.Logger {
+	return progress.NewLogger(clock.New(), zap.NewNop().Sugar(), config.Default().LogInterval, 123, "")
 }
