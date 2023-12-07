@@ -43,10 +43,7 @@ func (w *Writer) newSlice(path string) (*slice, error) {
 			s.out = gzipWriter
 			s.closers.
 				Append(func() error {
-					w.gzipWriters.Put(gzipWriter)
-					return nil
-				}).
-				Append(func() error {
+					defer w.gzipWriters.Put(gzipWriter)
 					return gzipWriter.Close()
 				})
 		} else {
@@ -56,10 +53,7 @@ func (w *Writer) newSlice(path string) (*slice, error) {
 		bufferWriter := w.bufferWriters.WriterTo(file)
 		s.out = bufferWriter
 		s.closers.Append(func() error {
-			w.bufferWriters.Put(bufferWriter)
-			return nil
-		})
-		s.closers.Append(func() error {
+			defer w.bufferWriters.Put(bufferWriter)
 			return bufferWriter.Flush()
 		})
 	}

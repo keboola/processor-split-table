@@ -216,10 +216,9 @@ func (r *Reader) openSlice(path string) (*sliceReadCloser, error) {
 		if gzipReader, err := r.gzipReaders.ReaderFrom(out.Reader); err == nil {
 			out.Reader = gzipReader
 			out.Closers.
-				Append(gzipReader.Close).
 				Append(func() error {
-					r.gzipReaders.Put(gzipReader)
-					return nil
+					defer r.gzipReaders.Put(gzipReader)
+					return gzipReader.Close()
 				})
 		} else {
 			return nil, err
@@ -232,10 +231,9 @@ func (r *Reader) openSlice(path string) (*sliceReadCloser, error) {
 		if aheadReader, err := readahead.NewReaderBuffer(out.Reader, *buffers); err == nil {
 			out.Reader = aheadReader
 			out.Closers.
-				Append(aheadReader.Close).
 				Append(func() error {
-					r.aheadBuffers.Put(buffers)
-					return nil
+					defer r.aheadBuffers.Put(buffers)
+					return aheadReader.Close()
 				})
 		} else {
 			return nil, err
