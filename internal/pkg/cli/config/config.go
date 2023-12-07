@@ -88,6 +88,14 @@ func Parse(args []string) (Config, error) {
 		return cfg, fmt.Errorf("cannot parse flags: %w", err)
 	}
 
+	// Define mapstructure hooks
+	hooks := viper.DecodeHook(
+		mapstructure.ComposeDecodeHookFunc(
+			mapstructure.TextUnmarshallerHookFunc(),
+			mapstructure.StringToTimeDurationHookFunc(),
+		),
+	)
+
 	// Bind flags to the config structure
 	binder := viper.New()
 	binder.AutomaticEnv()
@@ -96,7 +104,7 @@ func Parse(args []string) (Config, error) {
 	if err := binder.BindPFlags(f); err != nil {
 		return cfg, fmt.Errorf("cannot bind flags: %w", err)
 	}
-	if err := binder.Unmarshal(&cfg, viper.DecodeHook(mapstructure.TextUnmarshallerHookFunc())); err != nil {
+	if err := binder.Unmarshal(&cfg, hooks); err != nil {
 		return cfg, fmt.Errorf("cannot unmarshal flags: %w", err)
 	}
 
@@ -177,6 +185,10 @@ func flags() *pflag.FlagSet {
 	f.Uint64("rows-per-slice", cfg.RowsPerSlice, `Maximum number of rows per slice, for "rows" mode.`)
 	f.Uint32("number-of-slices", cfg.NumberOfSlices, `Number of slices, for "slices" mode.`)
 	f.String("min-bytes-per-slice", cfg.MinBytesPerSlice.String(), `Minimum size of a slice, for "slices" mode.`)
+
+	f.Float64("log-interval-multiplier", cfg.LogInterval.Multiplier, `Log interval multiplier.`)
+	f.Duration("log-interval-initial", cfg.LogInterval.Initial, `Initial log interval.`)
+	f.Duration("log-interval-maximum", cfg.LogInterval.Maximum, `Maximum log interval.`)
 
 	f.Uint32("ahead-slices", cfg.AheadSlices, "Number of input slices opened ahead.")
 	f.Uint32("ahead-blocks", cfg.AheadBlocks, "Number of blocks read ahead from an input slice, 0 disables read-ahead.")
