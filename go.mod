@@ -3,7 +3,9 @@ module github.com/keboola/processor-split-table
 go 1.21
 
 require (
+	github.com/benbjohnson/clock v1.3.5
 	github.com/c2h5oh/datasize v0.0.0-20220606134207-859f65c6625b
+	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-playground/locales v0.14.1
 	github.com/go-playground/universal-translator v0.18.1
