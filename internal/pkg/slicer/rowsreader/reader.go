@@ -18,6 +18,7 @@ import (
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/closer"
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/columnsparser"
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/config"
+	"github.com/keboola/processor-split-table/internal/pkg/slicer/rowsreader/progress"
 )
 
 const (
@@ -40,6 +41,7 @@ type Reader struct {
 
 	rowCounter uint64
 
+	progress     *progress.Logger
 	closers      closer.Closers
 	scanner      *bufio.Scanner
 	gzipReaders  *pool.GZIPReaderPool
@@ -52,18 +54,19 @@ type sliceReadCloser struct {
 }
 
 // NewSlicesReader creates the Reader for a sliced CSV table.
-func NewSlicesReader(cfg config.Config, path string, slices kbc.Slices, delimiter byte, enclosure byte) (*Reader, error) {
-	return newReader(cfg, path, slices.Paths(), true, delimiter, enclosure)
+func NewSlicesReader(progress *progress.Logger, cfg config.Config, path string, slices kbc.Slices, delimiter byte, enclosure byte) (*Reader, error) {
+	return newReader(progress, cfg, path, slices.Paths(), true, delimiter, enclosure)
 }
 
 // NewFileReader creates the Reader for a single CSV file.
 // It is special case of the slices reader with only one slice.
-func NewFileReader(cfg config.Config, path string, delimiter byte, enclosure byte) (*Reader, error) {
-	return newReader(cfg, path, []string{path}, false, delimiter, enclosure)
+func NewFileReader(progress *progress.Logger, cfg config.Config, path string, delimiter byte, enclosure byte) (*Reader, error) {
+	return newReader(progress, cfg, path, []string{path}, false, delimiter, enclosure)
 }
 
-func newReader(cfg config.Config, path string, slices []string, sliced bool, delimiter byte, enclosure byte) (*Reader, error) {
+func newReader(progress *progress.Logger, cfg config.Config, path string, slices []string, sliced bool, delimiter byte, enclosure byte) (*Reader, error) {
 	reader := &Reader{
+		progress:     progress,
 		config:       cfg,
 		path:         path,
 		slices:       slices,
@@ -210,6 +213,9 @@ func (r *Reader) openSlice(path string) (*sliceReadCloser, error) {
 	} else {
 		return nil, err
 	}
+
+	// Measure the reading progress of each slice
+	out.Reader = r.progress.NewMeter(out.Reader)
 
 	// Add decompression
 	if strings.HasSuffix(path, kbc.GzipFileExtension) {

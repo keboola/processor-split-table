@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/benbjohnson/clock"
 	"github.com/c2h5oh/datasize"
 	"github.com/dustin/go-humanize"
 	"github.com/go-playground/validator/v10"
@@ -15,6 +16,7 @@ import (
 	manifestPkg "github.com/keboola/processor-split-table/internal/pkg/manifest"
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/config"
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/rowsreader"
+	"github.com/keboola/processor-split-table/internal/pkg/slicer/rowsreader/progress"
 	"github.com/keboola/processor-split-table/internal/pkg/slicer/slicedwriter"
 	"github.com/keboola/processor-split-table/internal/pkg/utils"
 )
@@ -65,29 +67,38 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 	}
 
 	// Create target dir
-	logger.Infof("Slicing table \"%s\".", table.Name)
+	progressMessage := fmt.Sprintf("Slicing table \"%s\"", table.Name)
+	logger.Info(progressMessage + ".")
 	if err := utils.Mkdir(table.OutPath); err != nil {
 		return err
 	}
 
-	// Create reader
+	// Define inputs and input size
+	var slices kbc.Slices
 	var inputSize datasize.ByteSize
-	var reader *rowsreader.Reader
 	if slicedInput {
-		var slices kbc.Slices
 		if slices, err = kbc.FindSlices(table.InPath); err != nil {
 			return err
 		}
 		if inputSize, err = slices.Size(); err != nil {
 			return err
 		}
-		reader, err = rowsreader.NewSlicesReader(table.Config, table.InPath, slices, manifest.Delimiter(), manifest.Enclosure())
+	} else {
+		inputSize = datasize.ByteSize(stat.Size())
+	}
+
+	// Create progress logger
+	progressLogger := progress.NewLogger(clock.New(), logger, table.LogInterval, inputSize, progressMessage)
+
+	// Create reader
+	var reader *rowsreader.Reader
+	if slicedInput {
+		reader, err = rowsreader.NewSlicesReader(progressLogger, table.Config, table.InPath, slices, manifest.Delimiter(), manifest.Enclosure())
 		if err != nil {
 			return err
 		}
 	} else {
-		inputSize = datasize.ByteSize(stat.Size())
-		reader, err = rowsreader.NewFileReader(table.Config, table.InPath, manifest.Delimiter(), manifest.Enclosure())
+		reader, err = rowsreader.NewFileReader(progressLogger, table.Config, table.InPath, manifest.Delimiter(), manifest.Enclosure())
 		if err != nil {
 			return err
 		}
