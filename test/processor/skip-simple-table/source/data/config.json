@@ -1,0 +1,8 @@
+{
+  "parameters": {
+    "mode": "bytes",
+    "bytesPerSlice": 20,
+    "gzip": false,
+    "inputSizeThreshold": "500B"
+  }
+}
