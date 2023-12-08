@@ -4,3 +4,4 @@
 --table-output-path $OUT_DIR/table.csv
 --table-output-manifest-path $OUT_DIR/table.csv.manifest
 --gzip=false
+--input-size-threshold "0B"
