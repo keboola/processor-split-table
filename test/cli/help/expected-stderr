@@ -50,6 +50,9 @@ Usage of "slicer".
       --gzip-concurrency uint32             Number of parallel processed gzip blocks, 0 means the number of CPU threads.
       --gzip-level int                      GZIP compression level, range: 1 best speed - 9 best compression. (default 1)
       --help                                Print help.
+      --log-interval-initial duration       Initial log interval. (default 10s)
+      --log-interval-maximum duration       Maximum log interval. (default 15m0s)
+      --log-interval-multiplier float       Log interval multiplier. (default 1.5)
       --memory-limit string                 Soft memory limit, GOMEMLIMIT. (default "512MB")
       --min-bytes-per-slice string          Minimum size of a slice, for "slices" mode. (default "4MB")
       --mode string                         bytes, rows, or slices (default "bytes")

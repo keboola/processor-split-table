@@ -3,6 +3,7 @@ package config
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/c2h5oh/datasize"
 	"github.com/stretchr/testify/assert"
@@ -71,6 +72,9 @@ func TestParseConfig_Full(t *testing.T) {
 		"--gzip-level", "4",
 		"--memory-limit", "128MB",
 		"--min-bytes-per-slice", "3MB",
+		"--log-interval-multiplier", "2",
+		"--log-interval-initial", "30s",
+		"--log-interval-maximum", "40s",
 		"--mode", "rows",
 		"--number-of-slices", "456",
 		"--rows-per-slice", "789",
@@ -86,6 +90,11 @@ func TestParseConfig_Full(t *testing.T) {
 	expected.BufferSize = 123 * datasize.KB
 	expected.BytesPerSlice = 1 * datasize.MB
 	expected.CPUProfileFile = "cpu.out"
+	expected.LogInterval = config.LogIntervalConfig{
+		Multiplier: 2,
+		Initial:    30 * time.Second,
+		Maximum:    40 * time.Second,
+	}
 	expected.AheadSlices = 1
 	expected.AheadBlocks = 16
 	expected.AheadBlockSize = datasize.MB

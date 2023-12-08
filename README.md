@@ -30,6 +30,19 @@ You can download the CLI from the [GitHub Releases](https://github.com/keboola/p
 - `debug` and `info` messages are logged to the `stdout`.
 - `warn` and `error` messages are logged to the `stderr`.
 
+
+#### Slicing Progress
+
+Slicer logs progress with exponentially increasing intervals.
+
+Use following flags to modify logging intervals:
+-  `--log-interval-initial` *duration* 
+   - Initial log interval. (default 10s)
+-  `--log-interval-maximum` *duration*       
+   - Maximum log interval. (default 15m0s)
+-  `--log-interval-multiplier` *float*       
+   - Log interval multiplier. (default 1.5)
+
 ### Modes
 
 - There are the following modes for slicing the input table.
@@ -140,6 +153,15 @@ You can download the CLI from the [GitHub Releases](https://github.com/keboola/p
 - `--min-bytes-per-slice` *string*
   - Or `SLICER_MIN_BYTES_PER_SLICE` env.
   - Minimum size of a slice, for "slices" mode. (default "4MB")
+-  `--log-interval-initial` *duration*
+  - Or `SLICER_LOG_INTERVAL_INITIAL`. 
+  - Initial log interval. (default 10s)
+-  `--log-interval-maximum` *duration*
+  - Or `SLICER_LOG_INTERVAL_MAXIMUM`.
+  - Maximum log interval. (default 15m0s)
+-  `--log-interval-multiplier` *float*
+  - Or `SLICER_LOG_INTERVAL_MULTIPLIER`.
+  - Log interval multiplier. (default 1.5)
 - `--mode` *string*
   - Or `SLICER_MODE` env.
   - bytes, rows, or slices (default "bytes")

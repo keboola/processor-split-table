@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/c2h5oh/datasize"
 )
@@ -32,6 +33,9 @@ type Config struct {
 	NumberOfSlices   uint32            `json:"numberOfSlices" mapstructure:"number-of-slices" validate:"min=1"`
 	MinBytesPerSlice datasize.ByteSize `json:"minBytesPerSlice" mapstructure:"min-bytes-per-slice" validate:"min=1"` // if Mode = ModeSlices
 
+	// Progress logger
+	LogInterval LogIntervalConfig `json:"logInterval" mapstructure:",squash"`
+
 	// Read ahead configuration
 	// AheadSlices specifies number of slices opened ahead.
 	AheadSlices uint32 `json:"aheadSlices" mapstructure:"ahead-slices" validate:"min=1"`
@@ -51,6 +55,12 @@ type Config struct {
 	BufferSize datasize.ByteSize `json:"bufferSize" mapstructure:"buffer-size" validate:"min=32768"`
 }
 
+type LogIntervalConfig struct {
+	Multiplier float64       `json:"multiplier" mapstructure:"log-interval-multiplier" validate:"min=1"`
+	Initial    time.Duration `json:"initial" mapstructure:"log-interval-initial" validate:"required"`
+	Maximum    time.Duration `json:"maximum" mapstructure:"log-interval-maximum" validate:"required"`
+}
+
 func Default() Config {
 	return Config{
 		Mode:             ModeBytes,
@@ -58,14 +68,19 @@ func Default() Config {
 		RowsPerSlice:     1_000_000,
 		NumberOfSlices:   60,
 		MinBytesPerSlice: 4 * datasize.MB,
-		AheadSlices:      1,
-		AheadBlocks:      16,
-		AheadBlockSize:   1 * datasize.MB,
-		Gzip:             true,
-		GzipLevel:        1,                // 1 - BestSpeed, 9 - BestCompression
-		GzipConcurrency:  0,                // 0 = auto = number of CPU threads
-		GzipBlockSize:    1 * datasize.MB,  // so total buffer size is by default: GzipConcurrency (number of CPU threads) * GzipBlockSize
-		BufferSize:       20 * datasize.MB, // it is used if GZIP is disabled
+		LogInterval: LogIntervalConfig{
+			Multiplier: 1.5,
+			Initial:    10 * time.Second,
+			Maximum:    15 * time.Minute,
+		},
+		AheadSlices:     1,
+		AheadBlocks:     16,
+		AheadBlockSize:  1 * datasize.MB,
+		Gzip:            true,
+		GzipLevel:       1,                // 1 - BestSpeed, 9 - BestCompression
+		GzipConcurrency: 0,                // 0 = auto = number of CPU threads
+		GzipBlockSize:   1 * datasize.MB,  // so total buffer size is by default: GzipConcurrency (number of CPU threads) * GzipBlockSize
+		BufferSize:      20 * datasize.MB, // it is used if GZIP is disabled
 	}
 }
 
