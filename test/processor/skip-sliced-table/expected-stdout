@@ -1,0 +1,2 @@
+Skipping table "tables/tenRows.csv": maximum size of slice "*B" is smaller than the threshold "100B".
+Table "tables/tenRows.csv" has been copied to the output without modification.
