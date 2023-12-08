@@ -1,0 +1,2 @@
+Skipping table "mytable": table size "*B" is smaller than the threshold "100KB".
+Table "mytable" has been copied to the output without modification.

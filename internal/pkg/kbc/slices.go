@@ -66,6 +66,19 @@ func (v Slices) Size() (size datasize.ByteSize, err error) {
 	return size, nil
 }
 
+func (v Slices) MaxSliceSize() (maxSize datasize.ByteSize, err error) {
+	for _, item := range v {
+		info, err := item.Info()
+		if err != nil {
+			return 0, err
+		}
+		if size := datasize.ByteSize(info.Size()); size > maxSize {
+			maxSize = size
+		}
+	}
+	return maxSize, nil
+}
+
 func (v Slice) Path() string {
 	return v.path
 }

@@ -2,6 +2,7 @@
   "parameters": {
     "mode": "bytes",
     "bytesPerSlice": 20,
-    "gzip": true
+    "gzip": true,
+    "inputSizeThreshold": "0B"
   }
 }

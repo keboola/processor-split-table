@@ -24,11 +24,11 @@ type Writer struct {
 	allBytes      datasize.ByteSize
 }
 
-func New(cfg config.Config, inputSize datasize.ByteSize, outPath string) (*Writer, error) {
+func New(cfg config.Config, totalInputSize datasize.ByteSize, outPath string) (*Writer, error) {
 	// Convert NumberOfSlices to BytesPerSlice
 	if cfg.Mode == config.ModeSlices {
 		cfg.Mode = config.ModeBytes
-		cfg.BytesPerSlice = datasize.ByteSize(math.Ceil(float64(inputSize) / float64(cfg.NumberOfSlices)))
+		cfg.BytesPerSlice = datasize.ByteSize(math.Ceil(float64(totalInputSize) / float64(cfg.NumberOfSlices)))
 
 		// Too small slices (a few kilobytes) can slow down upload -> check min size
 		if cfg.BytesPerSlice < cfg.MinBytesPerSlice {

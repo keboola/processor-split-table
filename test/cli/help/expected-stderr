@@ -50,6 +50,7 @@ Usage of "slicer".
       --gzip-concurrency uint32             Number of parallel processed gzip blocks, 0 means the number of CPU threads.
       --gzip-level int                      GZIP compression level, range: 1 best speed - 9 best compression. (default 1)
       --help                                Print help.
+      --input-size-threshold string         At least one slice must exceed the threshold, otherwise the table is copied without modification. (default "50MB")
       --log-interval-initial duration       Initial log interval. (default 10s)
       --log-interval-maximum duration       Maximum log interval. (default 15m0s)
       --log-interval-multiplier float       Log interval multiplier. (default 1.5)

@@ -53,7 +53,7 @@ func LoadConfig(configPath string) (cfg *Config, err error) {
 
 	// Validate
 	if err := validate(conf); err != nil {
-		return nil, kbc.UserErrorf("invalid configuration: %s", processJSONError(err))
+		return nil, kbc.UserErrorf("invalid configuration: %s", err)
 	}
 
 	return conf, nil
@@ -78,7 +78,11 @@ func processJSONError(e error) string {
 	// Custom error message
 	var typeError *json.UnmarshalTypeError
 	if errors.As(e, &typeError) {
-		return fmt.Sprintf(`key "%s" has invalid type "%s"`, typeError.Field, typeError.Value)
+		expectedType := typeError.Type.String()
+		if expectedType == "map[string]interface {}" {
+			expectedType = "object"
+		}
+		return fmt.Sprintf(`key "%s" has invalid type "%s", expected "%s"`, typeError.Field, typeError.Value, expectedType)
 	}
 	return e.Error()
 }

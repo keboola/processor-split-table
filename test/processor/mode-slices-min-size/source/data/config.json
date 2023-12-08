@@ -3,6 +3,7 @@
     "mode": "slices",
     "numberOfSlices": 4,
     "minBytesPerSlice": 1572864,
-    "gzip": false
+    "gzip": false,
+    "inputSizeThreshold": "0B"
   }
 }

@@ -1,5 +1,6 @@
 {
   "parameters": {
-    "gzip": false
+    "gzip": false,
+    "inputSizeThreshold": "0B"
   }
 }

@@ -44,6 +44,9 @@ type Config struct {
 	// AheadBlockSize specifies size of a one read ahead block.
 	AheadBlockSize datasize.ByteSize `json:"aheadBlockSize" mapstructure:"ahead-block-size" validate:"min=32768"` // min 32KB
 
+	// InputSizeThreshold at least one slice must exceed the threshold, otherwise the table is copied without modification.
+	InputSizeThreshold datasize.ByteSize `json:"inputSizeThreshold" mapstructure:"input-size-threshold"` // 0 = no threshold
+
 	// GZIP configuration
 	Gzip            bool              `json:"gzip" mapstructure:"gzip"`
 	GzipLevel       int               `json:"gzipLevel" mapstructure:"gzip-level" validate:"min=1,max=9"`
@@ -73,14 +76,15 @@ func Default() Config {
 			Initial:    10 * time.Second,
 			Maximum:    15 * time.Minute,
 		},
-		AheadSlices:     1,
-		AheadBlocks:     16,
-		AheadBlockSize:  1 * datasize.MB,
-		Gzip:            true,
-		GzipLevel:       1,                // 1 - BestSpeed, 9 - BestCompression
-		GzipConcurrency: 0,                // 0 = auto = number of CPU threads
-		GzipBlockSize:   1 * datasize.MB,  // so total buffer size is by default: GzipConcurrency (number of CPU threads) * GzipBlockSize
-		BufferSize:      20 * datasize.MB, // it is used if GZIP is disabled
+		AheadSlices:        1,
+		AheadBlocks:        16,
+		AheadBlockSize:     1 * datasize.MB,
+		InputSizeThreshold: 50 * datasize.MB,
+		Gzip:               true,
+		GzipLevel:          1,                // 1 - BestSpeed, 9 - BestCompression
+		GzipConcurrency:    0,                // 0 = auto = number of CPU threads
+		GzipBlockSize:      1 * datasize.MB,  // so total buffer size is by default: GzipConcurrency (number of CPU threads) * GzipBlockSize
+		BufferSize:         20 * datasize.MB, // it is used if GZIP is disabled
 	}
 }
 

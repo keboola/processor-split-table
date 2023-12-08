@@ -2,6 +2,7 @@
   "parameters": {
     "mode": "rows",
     "rowsPerSlice": 123,
-    "gzip": false
+    "gzip": false,
+    "inputSizeThreshold": "0B"
   }
 }
