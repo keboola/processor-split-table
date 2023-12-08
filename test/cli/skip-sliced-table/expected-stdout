@@ -1,0 +1,2 @@
+Skipping table "mytable": maximum size of slice "*B" is smaller than the threshold "100KB".
+Table "mytable" has been copied to the output without modification.
