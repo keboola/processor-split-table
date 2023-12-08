@@ -84,8 +84,9 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 		maxSliceSize = totalInputSize
 	}
 
-	// Skip table if the maximum slice size is under the threshold, if any
-	if table.InputSizeThreshold > 0 && maxSliceSize < table.InputSizeThreshold {
+	// Skip table if the maximum slice size is under the threshold.
+	// If the InputSizeThreshold is 0, the feature is disabled, no table is skipped.
+	if maxSliceSize < table.InputSizeThreshold {
 		return skipTable(logger, table, slicedInput, maxSliceSize)
 	}
 
