@@ -194,6 +194,8 @@ func flags() *pflag.FlagSet {
 	f.Uint32("ahead-blocks", cfg.AheadBlocks, "Number of blocks read ahead from an input slice, 0 disables read-ahead.")
 	f.String("ahead-block-size", cfg.AheadBlockSize.String(), "Size of a one read ahead input block.")
 
+	f.String("input-size-threshold", cfg.InputSizeThreshold.String(), "At least one slice must exceed the threshold, otherwise the table is copied without modification.")
+
 	f.Bool("gzip", cfg.Gzip, "Enable gzip compression for slices.")
 	f.Int("gzip-level", cfg.GzipLevel, "GZIP compression level, range: 1 best speed - 9 best compression.")
 	f.Uint32("gzip-concurrency", cfg.GzipConcurrency, "Number of parallel processed gzip blocks, 0 means the number of CPU threads.")

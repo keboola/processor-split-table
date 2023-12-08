@@ -66,6 +66,7 @@ func TestParseConfig_Full(t *testing.T) {
 		"--buffer-size", "123KB",
 		"--bytes-per-slice", "1MB",
 		"--cpuprofile", "cpu.out",
+		"--input-size-threshold", "10MB",
 		"--gzip=false",
 		"--gzip-block-size", "2MB",
 		"--gzip-concurrency", "5",
@@ -98,6 +99,7 @@ func TestParseConfig_Full(t *testing.T) {
 	expected.AheadSlices = 1
 	expected.AheadBlocks = 16
 	expected.AheadBlockSize = datasize.MB
+	expected.InputSizeThreshold = 10 * datasize.MB
 	expected.Gzip = false
 	expected.GzipBlockSize = 2 * datasize.MB
 	expected.GzipConcurrency = 5
