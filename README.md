@@ -36,12 +36,25 @@ You can download the CLI from the [GitHub Releases](https://github.com/keboola/p
 Slicer logs progress with exponentially increasing intervals.
 
 Use following flags to modify logging intervals:
--  `--log-interval-initial` *duration* 
+- `--log-interval-initial` *duration* 
    - Initial log interval. (default 10s)
--  `--log-interval-maximum` *duration*       
+- `--log-interval-maximum` *duration*       
    - Maximum log interval. (default 15m0s)
--  `--log-interval-multiplier` *float*       
+- `--log-interval-multiplier` *float*       
    - Log interval multiplier. (default 1.5)
+
+### Skipping small input tables
+
+Slicing and compression of small tables may not make any sense.
+- Job can be slower than if we skipped slicing completely.
+- Therefore, it is possible to set a size threshold .
+- The threshold must be exceeded by at least one slice to start slicing.
+- If the table is not sliced, the size of the entire table must exceed the threshold.
+- Otherwise, the table is copied to the output without modification.
+
+The threshold can be configured by the following flag:
+- `--input-size-threshold` *string*
+  - At least one slice must exceed the threshold, otherwise the table is copied without modification. (default "50MB")
 
 ### Modes
 
@@ -147,19 +160,22 @@ Use following flags to modify logging intervals:
 - `--help`    
   - Or `SLICER_HELP` env.
   - Print help.
+`--input-size-threshold` *string*
+  - Or `SLICER_INPUT_SIZE_THRESHOLD` env.
+  - Minimum size of an input slice to start slicing, otherwise the table is only copied. (default "50MB")
 - `--memory-limit` *string*
   - Or `SLICER_MEMORY_LIMIT` env.
   - Soft memory limit, GOMEMLIMIT. (default "256MB")
 - `--min-bytes-per-slice` *string*
   - Or `SLICER_MIN_BYTES_PER_SLICE` env.
   - Minimum size of a slice, for "slices" mode. (default "4MB")
--  `--log-interval-initial` *duration*
+- `--log-interval-initial` *duration*
   - Or `SLICER_LOG_INTERVAL_INITIAL`. 
   - Initial log interval. (default 10s)
--  `--log-interval-maximum` *duration*
+- `--log-interval-maximum` *duration*
   - Or `SLICER_LOG_INTERVAL_MAXIMUM`.
   - Maximum log interval. (default 15m0s)
--  `--log-interval-multiplier` *float*
+- `--log-interval-multiplier` *float*
   - Or `SLICER_LOG_INTERVAL_MULTIPLIER`.
   - Log interval multiplier. (default 1.5)
 - `--mode` *string*
