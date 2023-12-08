@@ -66,29 +66,38 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 		return kbc.UserErrorf(`the manifest "%s" has no columns, columns are required for the sliced table`, table.InManifestPath)
 	}
 
-	// Create target dir
-	progressMessage := fmt.Sprintf("Slicing table \"%s\"", table.Name)
-	logger.Info(progressMessage + ".")
-	if err := utils.Mkdir(table.OutPath); err != nil {
-		return err
-	}
-
 	// Define inputs and input size
 	var slices kbc.Slices
-	var inputSize datasize.ByteSize
+	var totalInputSize, maxSliceSize datasize.ByteSize
 	if slicedInput {
 		if slices, err = kbc.FindSlices(table.InPath); err != nil {
 			return err
 		}
-		if inputSize, err = slices.Size(); err != nil {
+		if totalInputSize, err = slices.Size(); err != nil {
+			return err
+		}
+		if maxSliceSize, err = slices.MaxSliceSize(); err != nil {
 			return err
 		}
 	} else {
-		inputSize = datasize.ByteSize(stat.Size())
+		totalInputSize = datasize.ByteSize(stat.Size())
+		maxSliceSize = totalInputSize
+	}
+
+	// Skip table if the maximum slice size is under the threshold, if any
+	if table.InputSizeThreshold > 0 && maxSliceSize < table.InputSizeThreshold {
+		return skipTable(logger, table, slicedInput, maxSliceSize)
+	}
+
+	// Create target dir
+	if err := utils.Mkdir(table.OutPath); err != nil {
+		return err
 	}
 
 	// Create progress logger
-	progressLogger := progress.NewLogger(clock.New(), logger, table.LogInterval, inputSize, progressMessage)
+	progressMessage := fmt.Sprintf("Slicing table \"%s\"", table.Name)
+	progressLogger := progress.NewLogger(clock.New(), logger, table.LogInterval, totalInputSize, progressMessage)
+	logger.Info(progressMessage + ".") // log initial message
 
 	// Create reader
 	var reader *rowsreader.Reader
@@ -105,7 +114,7 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 	}
 
 	// Create writer
-	writer, err := slicedwriter.New(table.Config, inputSize, table.OutPath)
+	writer, err := slicedwriter.New(table.Config, totalInputSize, table.OutPath)
 	if err != nil {
 		return err
 	}
@@ -157,7 +166,7 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 		"Table \"%s\" sliced: in/out: %d / %d slices, %s / %s bytes, %s rows",
 		table.Name,
 		reader.Slices(), writer.Slices(),
-		utils.RemoveSpaces(inputSize.HumanReadable()),
+		utils.RemoveSpaces(totalInputSize.HumanReadable()),
 		utils.RemoveSpaces(outBytes.HumanReadable()),
 		humanize.Comma(int64(writer.AllRows())),
 	)
@@ -173,5 +182,30 @@ func SliceTable(logger log.Logger, table Table) (err error) {
 	msg += "."
 
 	logger.Info(msg)
+	return nil
+}
+
+func skipTable(logger log.Logger, table Table, slicedInput bool, maxSliceSize datasize.ByteSize) error {
+	if slicedInput {
+		logger.Infof(`Skipping table "%s": maximum size of slice "%s" is smaller than the threshold "%s".`, table.Name, maxSliceSize, table.InputSizeThreshold)
+	} else {
+		logger.Infof(`Skipping table "%s": table size "%s" is smaller than the threshold "%s".`, table.Name, maxSliceSize, table.InputSizeThreshold)
+	}
+
+	// Copy table
+	if err := utils.CopyRecursive(table.InPath, table.OutPath); err != nil {
+		return err
+	}
+
+	// Copy manifest
+	if found, err := utils.FileExists(table.InManifestPath); err == nil && found {
+		if err := utils.CopyRecursive(table.InManifestPath, table.OutManifestPath); err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+
+	logger.Infof(`Table "%s" has been copied to the output without modification.`, table.Name)
 	return nil
 }
