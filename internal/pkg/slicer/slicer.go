@@ -194,6 +194,11 @@ func skipTable(logger log.Logger, table Table, slicedInput bool, maxSliceSize da
 		logger.Infof(`Skipping table "%s": table size "%s" is smaller than the threshold "%s".`, table.Name, maxSliceSize, table.InputSizeThreshold)
 	}
 
+	// Exit without copying if flag is present
+	if table.InputSizeLowExitCode != 0 {
+		os.Exit(int(table.InputSizeLowExitCode))
+	}
+
 	// Copy table
 	if err := utils.CopyRecursive(table.InPath, table.OutPath); err != nil {
 		return err
