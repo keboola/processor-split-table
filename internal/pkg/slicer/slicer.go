@@ -29,6 +29,7 @@ type Table struct {
 	InManifestMustExists bool   `json:"-" mapstructure:"-"` // true in CLI, false in processor
 	OutPath              string `validate:"required" json:"outPath" mapstructure:"table-output-path"`
 	OutManifestPath      string `validate:"required" json:"outManifestPath" mapstructure:"table-output-manifest-path"`
+	InputSizeLowExitCode uint32 `json:"-"  mapstructure:"input-size-low-exit-code" validate:"max=255"`
 }
 
 func SliceTable(logger log.Logger, table Table) (err error) {
