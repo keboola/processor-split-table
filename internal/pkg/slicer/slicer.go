@@ -29,6 +29,7 @@ type Table struct {
 	InManifestMustExists bool   `json:"-" mapstructure:"-"` // true in CLI, false in processor
 	OutPath              string `validate:"required" json:"outPath" mapstructure:"table-output-path"`
 	OutManifestPath      string `validate:"required" json:"outManifestPath" mapstructure:"table-output-manifest-path"`
+	InputSizeLowExitCode uint32 `json:"-"  mapstructure:"input-size-low-exit-code" validate:"max=255"`
 }
 
 func SliceTable(logger log.Logger, table Table) (err error) {
@@ -191,6 +192,11 @@ func skipTable(logger log.Logger, table Table, slicedInput bool, maxSliceSize da
 		logger.Infof(`Skipping table "%s": maximum size of slice "%s" is smaller than the threshold "%s".`, table.Name, maxSliceSize, table.InputSizeThreshold)
 	} else {
 		logger.Infof(`Skipping table "%s": table size "%s" is smaller than the threshold "%s".`, table.Name, maxSliceSize, table.InputSizeThreshold)
+	}
+
+	// Exit without copying if flag is present
+	if table.InputSizeLowExitCode != 0 {
+		os.Exit(int(table.InputSizeLowExitCode))
 	}
 
 	// Copy table

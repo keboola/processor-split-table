@@ -195,6 +195,7 @@ func flags() *pflag.FlagSet {
 	f.String("ahead-block-size", cfg.AheadBlockSize.String(), "Size of a one read ahead input block.")
 
 	f.String("input-size-threshold", cfg.InputSizeThreshold.String(), "At least one slice must exceed the threshold, otherwise the table is copied without modification.")
+	f.Uint32("input-size-low-exit-code", cfg.InputSizeLowExitCode, "If specified, the skipped tables is not be copied, but the program exits with the exit code.")
 
 	f.Bool("gzip", cfg.Gzip, "Enable gzip compression for slices.")
 	f.Int("gzip-level", cfg.GzipLevel, "GZIP compression level, range: 1 best speed - 9 best compression.")

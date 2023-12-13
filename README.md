@@ -52,7 +52,9 @@ Slicing and compression of small tables may not make any sense.
 - If the table is not sliced, the size of the entire table must exceed the threshold.
 - Otherwise, the table is copied to the output without modification.
 
-The threshold can be configured by the following flag:
+The threshold can be configured by the following flags:
+- `--input-size-low-exit-code` *int*
+  - If specified, the skipped tables is not be copied, but the program exits with the exit code.
 - `--input-size-threshold` *string*
   - At least one slice must exceed the threshold, otherwise the table is copied without modification. (default "50MB")
 
@@ -160,7 +162,10 @@ The threshold can be configured by the following flag:
 - `--help`    
   - Or `SLICER_HELP` env.
   - Print help.
-`--input-size-threshold` *string*
+- `--input-size-low-exit-code` *int*
+  - Or `SLICER_INPUT_SIZE_LOW_EXIT_CODE` env.
+  - If specified, the skipped tables is not be copied, but the program exits with the exit code.
+- `--input-size-threshold` *string*
   - Or `SLICER_INPUT_SIZE_THRESHOLD` env.
   - Minimum size of an input slice to start slicing, otherwise the table is only copied. (default "50MB")
 - `--memory-limit` *string*
