@@ -101,10 +101,11 @@ func (m *Manifest) Modified() bool {
 }
 
 func (m *Manifest) HasColumns() bool {
-	if _, ok := m.content.Get("columns"); ok {
-		return true
+	if value, ok := m.content.Get("columns"); ok {
+		if array, ok := value.([]string); ok && len(array) > 0 {
+			return true
+		}
 	}
-
 	return false
 }
 
