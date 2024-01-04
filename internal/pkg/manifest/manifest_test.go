@@ -12,12 +12,13 @@ import (
 )
 
 type testData struct {
-	comment   string
-	input     string
-	columns   []string
-	enclosure byte
-	delimiter byte
-	newState  map[string]interface{}
+	comment    string
+	input      string
+	columns    []string
+	hasColumns bool
+	enclosure  byte
+	delimiter  byte
+	newState   map[string]interface{}
 }
 
 func TestGetSet(t *testing.T) {
@@ -37,6 +38,7 @@ func TestGetSet(t *testing.T) {
 		manifest, err := LoadManifest(manifestPath)
 		require.NoError(t, err)
 		assert.Equal(t, testData.columns, manifest.Columns())
+		assert.Equal(t, testData.hasColumns, manifest.HasColumns())
 
 		// Set different columns
 		newColumns := []string{"1", "2", "3"}
@@ -63,51 +65,56 @@ func TestGetSet(t *testing.T) {
 func getTestData() []testData {
 	return []testData{
 		{
-			comment:   "file not exists",
-			input:     "",
-			columns:   nil,
-			enclosure: '"',
-			delimiter: ',',
+			comment:    "file not exists",
+			input:      "",
+			columns:    nil,
+			hasColumns: false,
+			enclosure:  '"',
+			delimiter:  ',',
 			newState: map[string]interface{}{
 				"columns": []interface{}{"1", "2", "3"},
 			},
 		},
 		{
-			comment:   "empty json",
-			input:     "{}",
-			columns:   nil,
-			enclosure: '"',
-			delimiter: ',',
+			comment:    "empty json",
+			input:      "{}",
+			columns:    nil,
+			hasColumns: false,
+			enclosure:  '"',
+			delimiter:  ',',
 			newState: map[string]interface{}{
 				"columns": []interface{}{"1", "2", "3"},
 			},
 		},
 		{
-			comment:   "empty columns",
-			input:     "{\"columns\": []}",
-			columns:   make([]string, 0),
-			enclosure: '"',
-			delimiter: ',',
+			comment:    "empty columns",
+			input:      "{\"columns\": []}",
+			columns:    make([]string, 0),
+			hasColumns: false,
+			enclosure:  '"',
+			delimiter:  ',',
 			newState: map[string]interface{}{
 				"columns": []interface{}{"1", "2", "3"},
 			},
 		},
 		{
-			comment:   "columns defined, overwritten by setter",
-			input:     "{\"columns\": [\"x\", \"y\", \"z\"]}",
-			columns:   []string{"x", "y", "z"},
-			enclosure: '"',
-			delimiter: ',',
+			comment:    "columns defined, overwritten by setter",
+			input:      "{\"columns\": [\"x\", \"y\", \"z\"]}",
+			columns:    []string{"x", "y", "z"},
+			hasColumns: true,
+			enclosure:  '"',
+			delimiter:  ',',
 			newState: map[string]interface{}{
 				"columns": []interface{}{"1", "2", "3"},
 			},
 		},
 		{
-			comment:   "columns defined, overwritten by setter + original value preserved",
-			input:     "{\"foo\": \"bar\", \"columns\": [\"x\", \"y\", \"z\"]}",
-			columns:   []string{"x", "y", "z"},
-			enclosure: '"',
-			delimiter: ',',
+			comment:    "columns defined, overwritten by setter + original value preserved",
+			input:      "{\"foo\": \"bar\", \"columns\": [\"x\", \"y\", \"z\"]}",
+			columns:    []string{"x", "y", "z"},
+			hasColumns: true,
+			enclosure:  '"',
+			delimiter:  ',',
 			// foo:bar from the original manifest is preserved and new columns are set
 			newState: map[string]interface{}{
 				"foo":     "bar", // from original manifest
@@ -115,22 +122,24 @@ func getTestData() []testData {
 			},
 		},
 		{
-			comment:   "custom delimiter",
-			input:     "{\"delimiter\": \"\\t\"}",
-			columns:   nil,
-			enclosure: '"',
-			delimiter: '\t',
+			comment:    "custom delimiter",
+			input:      "{\"delimiter\": \"\\t\"}",
+			columns:    nil,
+			hasColumns: false,
+			enclosure:  '"',
+			delimiter:  '\t',
 			newState: map[string]interface{}{
 				"delimiter": "\t",
 				"columns":   []interface{}{"1", "2", "3"},
 			},
 		},
 		{
-			comment:   "custom enclosure",
-			input:     "{\"enclosure\": \"'\"}",
-			columns:   nil,
-			enclosure: '"',
-			delimiter: '\t',
+			comment:    "custom enclosure",
+			input:      "{\"enclosure\": \"'\"}",
+			columns:    nil,
+			hasColumns: false,
+			enclosure:  '"',
+			delimiter:  '\t',
 			newState: map[string]interface{}{
 				"enclosure": "'",
 				"columns":   []interface{}{"1", "2", "3"},
